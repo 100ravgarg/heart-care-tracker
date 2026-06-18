@@ -7,6 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 <meta name="apple-mobile-web-app-title" content="Heart Care" />
+<meta name="description" content="Personal heart-rate and medication tracker. Works offline." />
 <title>Heart Care — Pulse &amp; Medicine Tracker</title>
 
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%230f8a86'/%3E%3Cpath d='M50 78C30 64 18 53 18 40c0-9 7-16 16-16 6 0 11 3 16 9 5-6 10-9 16-9 9 0 16 7 16 16 0 13-12 24-32 38z' fill='white'/%3E%3C/svg%3E" />
@@ -14,74 +15,120 @@
 <link rel="manifest" href="data:application/manifest+json,%7B%22name%22%3A%22Heart%20Care%22%2C%22short_name%22%3A%22Heart%20Care%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%23eef3f3%22%2C%22theme_color%22%3A%22%230f8a86%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22data%3Aimage%2Fsvg%2Bxml%2C%253Csvg%2520xmlns%253D%2527http%253A%252F%252Fwww.w3.org%252F2000%252Fsvg%2527%2520viewBox%253D%25270%25200%2520100%2520100%2527%253E%253Crect%2520width%253D%2527100%2527%2520height%253D%2527100%2527%2520rx%253D%252722%2527%2520fill%253D%2527%25230f8a86%2527%252F%253E%253Cpath%2520d%253D%2527M50%252078C30%252064%252018%252053%252018%252040c0-9%25207-16%252016-16%25206%25200%252011%25203%252016%25209%25205-6%252010-9%252016-9%25209%25200%252016%25207%252016%252016%25200%252013-12%252024-32%252038z%2527%2520fill%253D%2527white%2527%252F%253E%253C%252Fsvg%253E%22%2C%22sizes%22%3A%22any%22%2C%22type%22%3A%22image%2Fsvg%2Bxml%22%7D%5D%7D" />
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" onerror="window.__chartjsFailed=true"></script>
+
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
 
 <style>
+  /* ============================================================
+     DESIGN TOKENS — soft "vital-signs monitor" theme
+     ============================================================ */
   :root{
-    --bg:#eef3f3;
+    --bg:#eef3f3;          /* calm cool background  */
     --card:#ffffff;
-    --ink:#16302e;
+    --ink:#16302e;         /* deep teal-charcoal text */
     --muted:#65807d;
     --line:#dce8e6;
-    --teal:#0f8a86;
+    --teal:#0f8a86;        /* primary UI accent */
     --teal-dark:#0a6b68;
-    --teal-soft:#e3f3f1;
-    --normal:#1f9d63;
-    --high:#dc3545;
-    --low:#2f72c9;
-    --med:#e08a1e;
+    --teal-soft:#e3f3f1;   /* active chips / soft fill */
+    --normal:#1f9d63;      /* status: in range  */
+    --high:#dc3545;        /* status: above limit */
+    --low:#2f72c9;         /* status: below limit */
+    --med:#e08a1e;         /* medicine markers (amber) */
     --med-soft:#fbeed7;
     --shadow:0 1px 2px rgba(16,48,46,.06), 0 6px 20px rgba(16,48,46,.06);
     --shadow-lg:0 10px 40px rgba(16,48,46,.18);
     --r:16px;
     --r-sm:11px;
-    --tap:52px;
+    --tap:52px;            /* large touch target for elderly-care use */
   }
 
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html,body{margin:0;padding:0}
   body{
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-    background:var(--bg); color:var(--ink); font-size:16.5px; line-height:1.45;
-    -webkit-font-smoothing:antialiased; padding-bottom:calc(78px + env(safe-area-inset-bottom));
+    background:var(--bg);
+    color:var(--ink);
+    font-size:16.5px;
+    line-height:1.45;
+    -webkit-font-smoothing:antialiased;
+    padding-bottom:calc(78px + env(safe-area-inset-bottom)); /* room for bottom nav */
   }
   .num{font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1}
+
+  /* ---------- App shell ---------- */
   .wrap{max-width:520px;margin:0 auto}
 
   header.appbar{
     position:sticky;top:0;z-index:30;
-    background:linear-gradient(135deg,var(--teal),var(--teal-dark)); color:#fff;
-    padding:calc(env(safe-area-inset-top) + 14px) 18px 14px; box-shadow:0 2px 14px rgba(10,107,104,.25);
+    background:linear-gradient(135deg,var(--teal),var(--teal-dark));
+    color:#fff;
+    padding:calc(env(safe-area-inset-top) + 14px) 18px 14px;
+    box-shadow:0 2px 14px rgba(10,107,104,.25);
   }
   .appbar .wrap{display:flex;align-items:center;gap:12px}
-  .appbar .logo{width:42px;height:42px;border-radius:12px;background:rgba(255,255,255,.16);display:grid;place-items:center;font-size:22px}
+  .appbar .logo{
+    width:42px;height:42px;border-radius:12px;flex:0 0 auto;
+    background:rgba(255,255,255,.16);display:grid;place-items:center;font-size:22px
+  }
   .appbar h1{font-size:19px;margin:0;font-weight:800;letter-spacing:-.2px}
   .appbar .sub{font-size:12.5px;opacity:.85;margin-top:1px}
 
-  .disclaimer{background:#fff7e6;border-bottom:1px solid #f1e2bf;color:#7a5a13;font-size:12.5px;text-align:center;padding:7px 16px;line-height:1.35}
+  /* Disclaimer — quiet, honest, always visible */
+  .disclaimer{
+    background:#fff7e6;border-bottom:1px solid #f1e2bf;color:#7a5a13;
+    font-size:12.5px;text-align:center;padding:7px 16px;line-height:1.35
+  }
+
   main{padding:16px 14px 8px}
 
-  .card{background:var(--card);border-radius:var(--r);box-shadow:var(--shadow);padding:16px;margin:0 0 14px;border:1px solid #eef3f2}
-  .card-title{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 12px}
+  /* ---------- Cards ---------- */
+  .card{
+    background:var(--card);border-radius:var(--r);box-shadow:var(--shadow);
+    padding:16px;margin:0 0 14px;border:1px solid #eef3f2
+  }
+  .card-title{
+    display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;
+    letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 12px
+  }
   .card-title .ico{font-size:15px}
 
-  .monitor{position:relative;overflow:hidden;text-align:center;padding:22px 16px 18px;color:#fff;border:none;background:linear-gradient(160deg,#16302e,#0a6b68);}
+  /* ---------- The signature: vital-sign monitor ---------- */
+  .monitor{
+    position:relative;overflow:hidden;text-align:center;
+    padding:22px 16px 18px;color:#fff;border:none;
+    background:linear-gradient(160deg,#16302e,#0a6b68);
+  }
   .monitor .ecg{position:absolute;inset:0;width:100%;height:100%;opacity:.16;pointer-events:none}
-  .monitor .lead{font-size:12px;letter-spacing:.12em;text-transform:uppercase;opacity:.8;}
-  .monitor .bpm{font-size:62px;font-weight:800;line-height:1;letter-spacing:-2px;margin:6px 0 2px;}
-  .monitor .bpm small{font-size:18px;font-weight:600;opacity:.7;margin-left:6px}
-  .monitor .heart{display:inline-block;font-size:20px;margin-right:6px;animation:beat 1.4s ease-in-out infinite}
-  .monitor .when{font-size:13.5px;opacity:.9;margin-top:4px}
-  .monitor .statuspill{display:inline-flex;align-items:center;gap:6px;margin-top:12px;padding:7px 16px;border-radius:999px;font-weight:700;font-size:14px;background:rgba(255,255,255,.14)}
+  .monitor .lead{font-size:12px;letter-spacing:.12em;text-transform:uppercase;opacity:.8;position:relative}
+  .monitor .bpm{
+    font-size:62px;font-weight:800;line-height:1;letter-spacing:-2px;
+    margin:6px 0 2px;position:relative
+  }
+  .monitor .bpm small{font-size:18px;font-weight:600;opacity:.7;letter-spacing:0;margin-left:6px}
+  .monitor .heart{
+    display:inline-block;position:relative;font-size:20px;margin-right:6px;
+    animation:beat 1.4s ease-in-out infinite
+  }
+  .monitor .when{font-size:12.5px;opacity:.8;position:relative;margin-top:4px}
+  .monitor .bpline{font-size:15px;font-weight:700;opacity:.95;position:relative;margin-top:6px;letter-spacing:.2px}
+  .monitor .statuspill{
+    display:inline-flex;align-items:center;gap:6px;margin-top:12px;position:relative;
+    padding:7px 16px;border-radius:999px;font-weight:700;font-size:14px;
+    background:rgba(255,255,255,.14)
+  }
   .monitor .statuspill .dot{width:9px;height:9px;border-radius:50%}
   @keyframes beat{0%,100%{transform:scale(1)}14%{transform:scale(1.22)}28%{transform:scale(1)}42%{transform:scale(1.16)}}
+  @media (prefers-reduced-motion: reduce){.monitor .heart{animation:none}}
 
+  /* ---------- Stat grid ---------- */
   .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
   .stat{background:var(--bg);border-radius:var(--r-sm);padding:12px 8px;text-align:center}
   .stat .v{font-size:24px;font-weight:800;line-height:1}
-  .stat .k{font-size:11px;color:var(--muted);margin-top:4px}
+  .stat .k{font-size:11px;color:var(--muted);margin-top:4px;letter-spacing:.02em}
 
+  /* ---------- Lists (today readings / meds) ---------- */
   .row{display:flex;align-items:center;gap:12px;padding:11px 2px;border-bottom:1px solid var(--line)}
   .row:last-child{border-bottom:none}
   .row .ico{width:38px;height:38px;border-radius:11px;flex:0 0 auto;display:grid;place-items:center;font-size:18px;background:var(--bg)}
@@ -91,101 +138,129 @@
   .row .main .t1{font-weight:700;font-size:15.5px}
   .row .main .t2{font-size:12.5px;color:var(--muted)}
   .row .time{font-size:13px;color:var(--muted);font-weight:600;white-space:nowrap}
+
   .empty{color:var(--muted);font-size:14px;text-align:center;padding:18px 6px}
 
-  .badge{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700;padding:3px 9px;border-radius:999px;}
+  /* ---------- Status badges ---------- */
+  .badge{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700;padding:3px 9px;border-radius:999px;white-space:nowrap}
   .badge .dot{width:7px;height:7px;border-radius:50%}
   .b-normal{background:#e6f6ee;color:var(--normal)} .b-normal .dot{background:var(--normal)}
   .b-high{background:#fde7e9;color:var(--high)} .b-high .dot{background:var(--high)}
   .b-low{background:#e7f0fb;color:var(--low)} .b-low .dot{background:var(--low)}
 
+  /* ---------- Forms ---------- */
   label.field{display:block;margin:0 0 12px}
   label.field>span{display:block;font-size:13px;font-weight:600;color:var(--muted);margin-bottom:6px}
-  input,select,textarea{width:100%;font:inherit;color:var(--ink);background:#fff;border:1.5px solid var(--line);border-radius:var(--r-sm);padding:13px 13px;min-height:var(--tap)}
-  textarea{min-height:64px;}
+  input,select,textarea{
+    width:100%;font:inherit;color:var(--ink);background:#fff;
+    border:1.5px solid var(--line);border-radius:var(--r-sm);
+    padding:13px 13px;min-height:var(--tap)
+  }
+  textarea{min-height:64px;resize:vertical}
   input:focus,select:focus,textarea:focus{outline:none;border-color:var(--teal);box-shadow:0 0 0 3px rgba(15,138,134,.15)}
   .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 
-  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:var(--tap);border:none;border-radius:var(--r-sm);font:inherit;font-weight:700;font-size:16px;cursor:pointer;padding:0 16px;}
+  /* ---------- Buttons ---------- */
+  .btn{
+    display:inline-flex;align-items:center;justify-content:center;gap:8px;
+    width:100%;min-height:var(--tap);border:none;border-radius:var(--r-sm);
+    font:inherit;font-weight:700;font-size:16px;cursor:pointer;padding:0 16px;
+    transition:transform .05s ease, filter .15s ease
+  }
   .btn:active{transform:scale(.985)}
   .btn-primary{background:var(--teal);color:#fff}
+  .btn-primary:active{filter:brightness(.95)}
   .btn-soft{background:var(--teal-soft);color:var(--teal-dark)}
   .btn-ghost{background:#fff;color:var(--ink);border:1.5px solid var(--line)}
   .btn-danger{background:#fdecec;color:var(--high);border:1.5px solid #f6c9cd}
   .btn-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
   .btn-sm{min-height:42px;font-size:14px;width:auto;padding:0 14px}
 
+  /* ---------- Segmented period filter ---------- */
   .seg{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:12px}
-  .seg button{flex:1 1 auto;min-width:74px;min-height:42px;border-radius:999px;border:1.5px solid var(--line);background:#fff;color:var(--muted);font:inherit;font-weight:600;font-size:13.5px;cursor:pointer}
+  .seg button{
+    flex:1 1 auto;min-width:74px;min-height:42px;border-radius:999px;border:1.5px solid var(--line);
+    background:#fff;color:var(--muted);font:inherit;font-weight:600;font-size:13.5px;cursor:pointer
+  }
   .seg button.on{background:var(--teal);border-color:var(--teal);color:#fff}
 
-  .chartbox{position:relative;width:100%;height:270px;background:#fff;}
+  /* ---------- Chart ---------- */
+  .chartbox{position:relative;width:100%;height:260px}
   .chartbox canvas{width:100%!important;height:100%!important;display:block}
-  
-  /* Upgraded High Contrast Printed Legend for Doctors */
-  .legend{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin-top:14px;font-size:12.5px;color:var(--ink);font-weight:600;}
-  .legend span{display:inline-flex;align-items:center;gap:5px}
-  .legend i{display:inline-block;width:16px;height:4px;background:#000;vertical-align:middle}
-  
-  .tablewrap{overflow-x:auto;margin:0 -4px}
+  .legend{display:flex;flex-wrap:wrap;gap:14px;justify-content:center;margin-top:12px;font-size:12.5px;color:var(--muted)}
+  .legend i{display:inline-block;vertical-align:middle;margin-right:5px}
+  .leg-line{width:18px;height:3px;border-radius:2px;background:var(--teal)}
+  .leg-dot{width:11px;height:11px;border-radius:50%;background:var(--normal)}
+  .leg-med{width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-bottom:11px solid var(--med)}
+
+  /* ---------- Table ---------- */
+  .tablewrap{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:0 -4px}
   table{border-collapse:collapse;width:100%;font-size:13.5px;min-width:520px}
   th,td{text-align:left;padding:10px 8px;border-bottom:1px solid var(--line);vertical-align:top}
-  th{font-size:11px;text-transform:uppercase;color:var(--muted);font-weight:700;}
+  th{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:700;white-space:nowrap}
   td .acts{display:flex;gap:6px}
-  td .iconbtn{border:none;background:var(--bg);border-radius:8px;width:34px;height:34px;cursor:pointer}
+  td .iconbtn{border:none;background:var(--bg);border-radius:8px;width:34px;height:34px;font-size:15px;cursor:pointer}
   td .iconbtn.del{background:#fdecec}
 
-  .timeline{position:relative;padding-left:6px}
+  /* ---------- Timeline ---------- */
+  .timeline{position:relative;margin:4px 0 0;padding-left:6px}
   .tl{position:relative;padding:0 0 14px 26px;border-left:2px solid var(--line)}
-  .tl:last-child{border-left-color:transparent}
+  .tl:last-child{border-left-color:transparent;padding-bottom:0}
   .tl .node{position:absolute;left:-9px;top:1px;width:16px;height:16px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 0 1.5px var(--line)}
   .tl .tt{font-size:13px;color:var(--muted);font-weight:600}
-  .tl .td{font-weight:700;font-size:15px;}
+  .tl .td{font-weight:700;font-size:15px;margin-top:1px}
   .tl .nt{font-size:12.5px;color:var(--muted);margin-top:2px}
 
+  /* ---------- Settings chips ---------- */
   .chips{display:flex;flex-wrap:wrap;gap:8px;margin:4px 0 12px}
-  .chip{display:inline-flex;align-items:center;gap:6px;background:var(--teal-soft);color:var(--teal-dark);border-radius:999px;padding:7px 8px 7px 13px;font-size:14px;font-weight:600}
-  .chip button{border:none;background:rgba(10,107,104,.12);color:var(--teal-dark);width:22px;height:22px;border-radius:50%;cursor:pointer;}
+  .chip{display:inline-flex;align-items:center;gap:6px;background:var(--teal-soft);color:var(--teal-dark);
+    border-radius:999px;padding:7px 8px 7px 13px;font-size:14px;font-weight:600}
+  .chip button{border:none;background:rgba(10,107,104,.12);color:var(--teal-dark);width:22px;height:22px;border-radius:50%;cursor:pointer;font-size:14px;line-height:1}
 
   .note{font-size:13px;color:var(--muted);line-height:1.5}
-  .steps{padding-left:20px;font-size:13.5px;}
+  .note b{color:var(--ink)}
+  .steps{margin:6px 0 0;padding-left:20px;font-size:13.5px;line-height:1.7}
+  .steps li{margin-bottom:4px}
 
-  nav.tabbar{position:fixed;left:0;right:0;bottom:0;z-index:40;background:rgba(255,255,255,.96);backdrop-filter:blur(10px);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom);box-shadow:0 -2px 16px rgba(16,48,46,.06)}
+  /* ---------- Bottom navigation ---------- */
+  nav.tabbar{
+    position:fixed;left:0;right:0;bottom:0;z-index:40;
+    background:rgba(255,255,255,.96);backdrop-filter:blur(10px);
+    border-top:1px solid var(--line);
+    padding-bottom:env(safe-area-inset-bottom);
+    box-shadow:0 -2px 16px rgba(16,48,46,.06)
+  }
   nav.tabbar .wrap{display:flex}
-  nav.tabbar button{flex:1;background:none;border:none;cursor:pointer;color:var(--muted);padding:9px 2px 8px;font:inherit;font-size:11px;font-weight:600;display:flex;flex-direction:column;align-items:center;gap:3px}
-  nav.tabbar button .ti{font-size:21px;}
+  nav.tabbar button{
+    flex:1;background:none;border:none;cursor:pointer;color:var(--muted);
+    padding:9px 2px 8px;font:inherit;font-size:11px;font-weight:600;
+    display:flex;flex-direction:column;align-items:center;gap:3px
+  }
+  nav.tabbar button .ti{font-size:21px;line-height:1}
   nav.tabbar button.on{color:var(--teal)}
 
-  .view{display:none;}
+  /* ---------- View switching ---------- */
+  .view{display:none;animation:fade .22s ease}
   .view.active{display:block}
-  .view-head{font-size:21px;font-weight:800;margin:2px 4px 14px}
+  @keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+  @media (prefers-reduced-motion: reduce){.view{animation:none}}
 
+  .view-head{font-size:21px;font-weight:800;letter-spacing:-.3px;margin:2px 4px 14px}
+
+  /* ---------- Modal ---------- */
   .overlay{position:fixed;inset:0;z-index:60;background:rgba(16,48,46,.45);display:none;align-items:flex-end;justify-content:center}
   .overlay.open{display:flex}
-  .modal{background:#fff;border-radius:20px 20px 0 0;width:100%;max-width:520px;padding:18px 16px calc(20px + env(safe-area-inset-bottom));max-height:90vh;overflow:auto}
-  .toast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:11px 18px;border-radius:999px;font-size:14px;font-weight:600;opacity:0;transition:.25s;z-index:80;}
-  .toast.show{opacity:1;}
-  .hide{display:none!important}
+  .modal{background:#fff;border-radius:20px 20px 0 0;width:100%;max-width:520px;padding:18px 16px calc(20px + env(safe-area-inset-bottom));box-shadow:var(--shadow-lg);max-height:90vh;overflow:auto}
+  .modal h3{margin:2px 0 14px;font-size:18px}
+  @media(min-width:560px){.overlay{align-items:center}.modal{border-radius:20px;margin:16px}}
 
-  /* ============================================================
-     🖨️ PERFECT BLACK-AND-WHITE MEDICAL PRINT OVERRIDES
-     ============================================================ */
-  @media print {
-    body { background: #fff !important; color: #000 !important; padding: 0 !important; }
-    nav.tabbar, header.appbar, .disclaimer, .seg, .btn, .btn-row, .acts, td:last-child, th:last-child, #chartExtra {
-      display: none !important;
-    }
-    .card { border: 1px solid #000 !important; box-shadow: none !important; padding: 12px !important; margin-bottom: 25px !important; page-break-inside: avoid !important; }
-    .wrap { max-width: 100% !important; width: 100% !important; margin: 0 !important; }
-    .view { display: none !important; }
-    .view.active { display: block !important; }
-    .chartbox { height: 350px !important; border: 1px solid #000 !important; }
-    .legend { color: #000 !important; font-size: 14px !important; }
-    th { color: #000 !important; border-bottom: 2px solid #000 !important; }
-    td { border-bottom: 1px solid #ccc !important; }
-    .badge { border: 1px solid #000 !important; background: transparent !important; color: #000 !important; padding: 1px 6px !important; }
-    .badge .dot { display: none !important; }
-  }
+  /* ---------- Toast ---------- */
+  .toast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%) translateY(20px);
+    background:var(--ink);color:#fff;padding:11px 18px;border-radius:999px;font-size:14px;font-weight:600;
+    opacity:0;pointer-events:none;transition:.25s;z-index:80;box-shadow:var(--shadow-lg)}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  .hide{display:none!important}
 </style>
 </head>
 <body>
@@ -195,23 +270,27 @@
     <div class="logo">❤️</div>
     <div>
       <h1 id="patientTitle">Heart Care</h1>
-      <div class="sub" id="patientSub">Pulse &amp; blood pressure tracker</div>
+      <div class="sub" id="patientSub">Pulse &amp; medicine tracker</div>
     </div>
   </div>
 </header>
 <div class="disclaimer">
-  ⚕️ Personal tracking tool only — not a medical device. Always consult your doctor.
+  ⚕️ Personal tracking tool only — not a medical device or diagnosis. Always follow your doctor.
 </div>
 
 <main class="wrap">
 
-  <!-- ================= DASHBOARD ================= -->
   <section class="view active" id="view-home">
     <div id="reminderBanner"></div>
+
     <div class="card monitor" id="monitorCard">
-      <svg class="ecg" viewBox="0 0 520 160" preserveAspectRatio="none"><path d="M0,80 L120,80 L140,80 L150,40 L162,120 L176,30 L188,80 L300,80 L320,80 L330,55 L342,108 L356,80 L520,80" fill="none" stroke="#ffffff" stroke-width="3"/></svg>
-      <div class="lead">Latest Reading · today</div>
+      <svg class="ecg" viewBox="0 0 520 160" preserveAspectRatio="none" aria-hidden="true">
+        <path d="M0,80 L120,80 L140,80 L150,40 L162,120 L176,30 L188,80 L300,80 L320,80 L330,55 L342,108 L356,80 L520,80"
+              fill="none" stroke="#ffffff" stroke-width="3"/>
+      </svg>
+      <div class="lead">Latest pulse · today</div>
       <div class="bpm num"><span class="heart">❤️</span><span id="latestBpm">--</span><small>bpm</small></div>
+      <div class="bpline" id="latestBp" style="display:none"></div>
       <div class="when" id="latestWhen">No reading yet today</div>
       <div class="statuspill" id="latestStatus" style="display:none"></div>
     </div>
@@ -219,14 +298,14 @@
     <div class="card">
       <div class="card-title"><span class="ico">📊</span>Today at a glance</div>
       <div class="stats">
-        <div class="stat"><div class="v num" id="stMin">--</div><div class="k">Lowest Pulse</div></div>
-        <div class="stat"><div class="v num" id="stAvg">--</div><div class="k">Average Pulse</div></div>
-        <div class="stat"><div class="v num" id="stMax">--</div><div class="k">Highest Pulse</div></div>
+        <div class="stat"><div class="v num" id="stMin">--</div><div class="k">Lowest</div></div>
+        <div class="stat"><div class="v num" id="stAvg">--</div><div class="k">Average</div></div>
+        <div class="stat"><div class="v num" id="stMax">--</div><div class="k">Highest</div></div>
       </div>
     </div>
 
     <div class="card">
-      <div class="card-title"><span class="ico">❤️</span>Today's Vitals (Pulse &amp; BP)</div>
+      <div class="card-title"><span class="ico">❤️</span>Today's pulse readings</div>
       <div id="todayPulse"></div>
     </div>
 
@@ -236,27 +315,30 @@
     </div>
 
     <div class="btn-row">
-      <button class="btn btn-primary" onclick="openAdd('pulse')">❤️ Add pulse &amp; BP</button>
+      <button class="btn btn-primary" onclick="openAdd('pulse')">❤️ Add pulse</button>
       <button class="btn btn-soft" onclick="openAdd('med')">💊 Add medicine</button>
     </div>
   </section>
 
-  <!-- ================= ADD ================= -->
   <section class="view" id="view-add">
     <div class="view-head">Add a record</div>
+
     <div class="card" id="addPulseCard">
-      <div class="card-title"><span class="ico">❤️</span>Pulse &amp; Blood Pressure</div>
+      <div class="card-title"><span class="ico">❤️</span>Pulse & BP reading</div>
       <div class="two">
         <label class="field"><span>Date</span><input type="date" id="p_date"></label>
         <label class="field"><span>Time</span><input type="time" id="p_time"></label>
       </div>
-      <div class="two" style="background: #f4f9f8; padding: 10px; border-radius: var(--r-sm); margin-bottom: 12px; border: 1px dashed var(--line);">
-        <label class="field" style="margin:0"><span>Systolic BP (Top #)</span><input type="number" id="p_sys" inputmode="numeric" placeholder="e.g. 120"></label>
-        <label class="field" style="margin:0"><span>Diastolic BP (Bottom #)</span><input type="number" id="p_dia" inputmode="numeric" placeholder="e.g. 80"></label>
+      <label class="field"><span>Pulse / heart rate (bpm)</span>
+        <input type="number" id="p_bpm" inputmode="numeric" min="20" max="300" placeholder="e.g. 88"></label>
+      <label class="field" style="margin-bottom:6px"><span>Blood pressure (optional)</span></label>
+      <div class="two" style="margin-bottom:12px">
+        <label class="field" style="margin:0"><input type="number" id="p_sys" inputmode="numeric" min="50" max="260" placeholder="Systolic e.g. 120"></label>
+        <label class="field" style="margin:0"><input type="number" id="p_dia" inputmode="numeric" min="30" max="160" placeholder="Diastolic e.g. 80"></label>
       </div>
-      <label class="field"><span>Pulse / heart rate (bpm)</span><input type="number" id="p_bpm" inputmode="numeric" min="20" max="300" placeholder="e.g. 88"></label>
-      <label class="field"><span>Notes (optional)</span><textarea id="p_note" placeholder="e.g. resting, sitting down"></textarea></label>
-      <button class="btn btn-primary" onclick="savePulse()">Save vitals</button>
+      <label class="field"><span>Notes (optional)</span>
+        <textarea id="p_note" placeholder="e.g. resting, after walk, felt dizzy"></textarea></label>
+      <button class="btn btn-primary" onclick="savePulse()">Save pulse reading</button>
     </div>
 
     <div class="card" id="addMedCard">
@@ -265,59 +347,53 @@
         <label class="field"><span>Date</span><input type="date" id="m_date"></label>
         <label class="field"><span>Time given</span><input type="time" id="m_time"></label>
       </div>
-      <label class="field"><span>Medicine name</span><input type="text" id="m_name" list="medList" placeholder="e.g. Telmisartan"><datalist id="medList"></datalist></label>
-      <label class="field"><span>Dose / quantity</span><input type="text" id="m_dose" placeholder="e.g. 40 mg"></label>
-      <label class="field"><span>Notes (optional)</span><textarea id="m_note" placeholder="e.g. after lunch"></textarea></label>
+      <label class="field"><span>Medicine name</span>
+        <input type="text" id="m_name" list="medList" placeholder="e.g. Amlodipine">
+        <datalist id="medList"></datalist></label>
+      <label class="field"><span>Dose / quantity</span>
+        <input type="text" id="m_dose" placeholder="e.g. 5 mg, 1 tablet"></label>
+      <label class="field"><span>Notes (optional)</span>
+        <textarea id="m_note" placeholder="e.g. before breakfast"></textarea></label>
       <button class="btn btn-primary" onclick="saveMed()">Save medicine</button>
     </div>
   </section>
 
-  <!-- ================= TRENDS / DOCTOR REPORT ================= -->
   <section class="view" id="view-trends">
-    <div class="view-head">Doctor Medical Trends</div>
+    <div class="view-head">Trends</div>
     <div class="card">
-      <div class="card-title"><span class="ico">📈</span>High-Contrast Graph (Optimized for Doctor &amp; Print)</div>
+      <div class="card-title"><span class="ico">📈</span>Pulse & BP over time, with medicine markers</div>
       <div class="seg" id="chartSeg">
-        <button data-p="today">Today</button>
-        <button data-p="7days" class="on">7 days</button>
+        <button data-p="today" class="on">Today</button>
+        <button data-p="7days">7 days</button>
         <button data-p="month">This month</button>
+        <button data-p="selmonth">Pick month</button>
         <button data-p="custom">Custom</button>
       </div>
       <div id="chartExtra" class="hide" style="margin-bottom:12px"></div>
-      
       <div class="chartbox"><canvas id="chartCanvas"></canvas></div>
-      
       <div class="legend">
-        <span><b style="font-size:16px">●━</b> Pulse Trend</span>
-        <span><b style="font-size:16px; letter-spacing:2px">▲---</b> Systolic BP</span>
-        <span><b style="font-size:16px; letter-spacing:1px">■····</b> Diastolic BP</span>
-        <span><b style="color:var(--med)">|</b> Medicine Dose Marker</span>
+        <span><i class="leg-line"></i>Pulse trend</span>
+        <span><i class="leg-dot"></i>Reading (color = status)</span>
+        <span><i class="leg-med"></i>Medicine given</span>
       </div>
-
-      <div class="btn-row" style="margin-top:20px">
-        <button class="btn btn-soft" onclick="downloadChartImg()">📥 Save Chart Image (For Excel)</button>
-        <button class="btn btn-primary" onclick="window.print()">🖨️ Print Clean Paper Report</button>
-      </div>
-      
-      <div id="chartMedList" class="note" style="margin-top:14px"></div>
-      <div id="chartReadingTimeList"></div>
+      <div id="chartMedList" class="note" style="margin-top:10px"></div>
     </div>
-
     <div class="card">
-      <div class="card-title"><span class="ico">🧮</span>Summary Statistics</div>
+      <div class="card-title"><span class="ico">🧮</span>Summary for this view</div>
       <div id="chartStats"></div>
     </div>
   </section>
 
-  <!-- ================= RECORDS ================= -->
   <section class="view" id="view-records">
-    <div class="view-head">Historical Records</div>
+    <div class="view-head">Records</div>
+
     <div class="card">
-      <div class="card-title"><span class="ico">🔎</span>Filter Range</div>
+      <div class="card-title"><span class="ico">🔎</span>Filter</div>
       <div class="seg" id="tableSeg">
         <button data-p="today">Today</button>
         <button data-p="7days" class="on">7 days</button>
         <button data-p="month">This month</button>
+        <button data-p="selmonth">Pick month</button>
         <button data-p="custom">Custom</button>
       </div>
       <div id="tableExtra" class="hide"></div>
@@ -329,42 +405,46 @@
     </div>
 
     <div class="card">
-      <div class="card-title"><span class="ico">🕒</span>Timeline View</div>
+      <div class="card-title"><span class="ico">🕒</span>Timeline</div>
       <div id="timeline" class="timeline"></div>
     </div>
 
     <div class="card">
-      <div class="card-title"><span class="ico">📋</span>Log Spreadsheet Table</div>
+      <div class="card-title"><span class="ico">📋</span>All records in range</div>
       <div class="tablewrap">
         <table id="recTable">
-          <thead><tr><th>Date</th><th>Time</th><th>Type</th><th>Detail</th><th>Notes</th><th></th></tr></thead>
+          <thead><tr>
+            <th>Date</th><th>Time</th><th>Type</th><th>Detail</th><th>Notes</th><th></th>
+          </tr></thead>
           <tbody id="recBody"></tbody>
         </table>
       </div>
     </div>
 
     <div class="card">
-      <div class="card-title"><span class="ico">💾</span>Data Management &amp; Backups</div>
+      <div class="card-title"><span class="ico">💾</span>Backup &amp; data</div>
       <div class="btn-row" style="margin-bottom:10px">
-        <button class="btn btn-soft" onclick="exportCSV()">⬇️ Export CSV Sheet</button>
-        <button class="btn btn-soft" onclick="exportJSON()">⬇️ Full Backup file</button>
+        <button class="btn btn-soft" onclick="exportCSV()">⬇️ Export CSV</button>
+        <button class="btn btn-soft" onclick="exportJSON()">⬇️ Backup JSON</button>
       </div>
-      <button class="btn btn-ghost" style="margin-bottom:10px" onclick="document.getElementById('importFile').click()">⬆️ Restore from Backup</button>
+      <button class="btn btn-ghost" style="margin-bottom:10px" onclick="document.getElementById('importFile').click()">⬆️ Restore from JSON backup</button>
       <input type="file" id="importFile" accept="application/json,.json" class="hide" onchange="importJSON(event)">
-      <button class="btn btn-danger" onclick="clearAll()">🗑️ Clear All Local &amp; Cloud Records</button>
+      <button class="btn btn-danger" onclick="clearAll()">🗑️ Clear all records</button>
+      <p class="note" style="margin-top:10px">CSV opens in Excel. JSON is a full backup you can restore later. Clearing keeps your settings but removes every record.</p>
     </div>
   </section>
 
-  <!-- ================= SETTINGS ================= -->
   <section class="view" id="view-settings">
-    <div class="view-head">System Settings</div>
+    <div class="view-head">Settings</div>
+
     <div class="card">
-      <div class="card-title"><span class="ico">👤</span>Patient Profile</div>
+      <div class="card-title"><span class="ico">👤</span>Patient</div>
       <label class="field"><span>Patient name</span><input type="text" id="set_name" placeholder="e.g. Mother"></label>
     </div>
 
     <div class="card">
-      <div class="card-title"><span class="ico">🎯</span>Normal Pulse Range Alert limits</div>
+      <div class="card-title"><span class="ico">🎯</span>Normal pulse range</div>
+      <p class="note" style="margin-bottom:12px">Readings outside this range are flagged. Use the values your doctor advises.</p>
       <div class="two">
         <label class="field"><span>Lower limit (bpm)</span><input type="number" id="set_low" inputmode="numeric"></label>
         <label class="field"><span>Upper limit (bpm)</span><input type="number" id="set_high" inputmode="numeric"></label>
@@ -372,25 +452,59 @@
     </div>
 
     <div class="card">
-      <div class="card-title"><span class="ico">💊</span>Configured Medicines</div>
-      <div class="chips" id="medChips"></div>
-      <div style="display:flex;gap:8px">
-        <input type="text" id="newMed" placeholder="Add custom drug name">
-        <button class="btn btn-soft btn-sm" style="flex:0 0 auto" onclick="addMedName()">Add</button>
+      <div class="card-title"><span class="ico">🩸</span>Normal BP range</div>
+      <p class="note" style="margin-bottom:12px">Used to flag high/low blood pressure readings.</p>
+      <div class="two">
+        <label class="field"><span>Systolic lower</span><input type="number" id="set_sys_low" inputmode="numeric"></label>
+        <label class="field"><span>Systolic upper</span><input type="number" id="set_sys_high" inputmode="numeric"></label>
+      </div>
+      <div class="two">
+        <label class="field"><span>Diastolic lower</span><input type="number" id="set_dia_low" inputmode="numeric"></label>
+        <label class="field"><span>Diastolic upper</span><input type="number" id="set_dia_high" inputmode="numeric"></label>
       </div>
     </div>
 
     <div class="card">
-      <div class="card-title"><span class="ico">🔔</span>Dashboard Reminder Banner Message</div>
-      <label class="field"><textarea id="set_reminder" placeholder="Write prescription instructions here..."></textarea></label>
+      <div class="card-title"><span class="ico">💊</span>Common medicines</div>
+      <div class="chips" id="medChips"></div>
+      <div style="display:flex;gap:8px">
+        <input type="text" id="newMed" placeholder="Add a medicine name">
+        <button class="btn btn-soft btn-sm" style="flex:0 0 auto" onclick="addMedName()">Add</button>
+      </div>
+      <p class="note" style="margin-top:10px">These appear as quick suggestions when adding medicine.</p>
     </div>
 
-    <button class="btn btn-primary" style="margin-bottom:16px" onclick="saveSettings()">Save Configuration</button>
+    <div class="card">
+      <div class="card-title"><span class="ico">🔔</span>Reminder note</div>
+      <label class="field"><span>Shown on the home screen</span>
+        <textarea id="set_reminder" placeholder="e.g. Give 5 mg at 8 AM and 8 PM. Measure pulse before each dose."></textarea></label>
+      <button class="btn btn-soft" id="notifBtn" onclick="enableNotif()" style="display:none">🔕 Turn on a browser reminder</button>
+      <p class="note" style="margin-top:8px">This is just a note. Phone push reminders aren't reliable in a web page, so please also set a phone alarm.</p>
+    </div>
+
+    <button class="btn btn-primary" style="margin-bottom:16px" onclick="saveSettings()">Save settings</button>
 
     <div class="card">
-      <div class="card-title"><span class="ico">📲</span>Add Tracker shortcut shortcut icon to Mobile Device</div>
-      <p class="note"><b>Android Phones:</b> Open link in Chrome browser, click <b>⋮</b> right corner menu, click <b>Add to Home Screen / Install App</b>.</p>
-      <p class="note" style="margin-top:10px"><b>iPhones:</b> Open link in Safari browser, click center <b>Share box arrow button</b>, scroll menu down, choose <b>Add to Home Screen</b>.</p>
+      <div class="card-title"><span class="ico">📲</span>Install on your phone</div>
+      <button class="btn btn-primary hide" id="installBtn" style="margin-bottom:12px">Add to home screen</button>
+      <p class="note"><b>Android (Chrome):</b></p>
+      <ol class="steps">
+        <li>Tap the <b>⋮</b> menu (top right).</li>
+        <li>Tap <b>Add to Home screen</b> / <b>Install app</b>.</li>
+        <li>Confirm. An icon appears like a normal app.</li>
+      </ol>
+      <p class="note" style="margin-top:10px"><b>iPhone (Safari):</b></p>
+      <ol class="steps">
+        <li>Tap the <b>Share</b> button (square with an arrow).</li>
+        <li>Choose <b>Add to Home Screen</b>.</li>
+        <li>Tap <b>Add</b>. Open it from the home screen.</li>
+      </ol>
+      <p class="note" style="margin-top:10px">Once opened, it keeps working <b>offline</b>, and your data stays on this phone.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="ico">ℹ️</span>About</div>
+      <p class="note">Heart Care stores everything locally in this browser. No account, no internet needed after the first open. This tool helps you keep notes — it does not diagnose. For anything concerning, contact a doctor or emergency services.</p>
     </div>
   </section>
 
@@ -406,39 +520,43 @@
   </div>
 </nav>
 
-<!-- Modal -->
 <div class="overlay" id="overlay">
   <div class="modal">
-    <h3 id="editTitle">Modify entry</h3>
+    <h3 id="editTitle">Edit record</h3>
     <input type="hidden" id="e_id">
     <div class="two">
       <label class="field"><span>Date</span><input type="date" id="e_date"></label>
       <label class="field"><span>Time</span><input type="time" id="e_time"></label>
     </div>
     <div id="e_pulseFields">
-      <div class="two" style="background:#f4f9f8; padding:10px; border-radius:var(--r-sm); margin-bottom:12px;">
-        <label class="field" style="margin:0"><span>Systolic BP</span><input type="number" id="e_sys" inputmode="numeric"></label>
-        <label class="field" style="margin:0"><span>Diastolic BP</span><input type="number" id="e_dia" inputmode="numeric"></label>
-      </div>
       <label class="field"><span>Pulse (bpm)</span><input type="number" id="e_bpm" inputmode="numeric"></label>
+      <div class="two" style="margin-bottom:12px">
+        <label class="field" style="margin:0"><span>Systolic (optional)</span><input type="number" id="e_sys" inputmode="numeric" placeholder="e.g. 120"></label>
+        <label class="field" style="margin:0"><span>Diastolic (optional)</span><input type="number" id="e_dia" inputmode="numeric" placeholder="e.g. 80"></label>
+      </div>
     </div>
     <div id="e_medFields">
       <label class="field"><span>Medicine name</span><input type="text" id="e_name" list="medList"></label>
-      <label class="field"><span>Dose</span><input type="text" id="e_dose"></label>
+      <label class="field"><span>Dose / quantity</span><input type="text" id="e_dose"></label>
     </div>
     <label class="field"><span>Notes</span><textarea id="e_note"></textarea></label>
     <div class="btn-row" style="margin-bottom:10px">
       <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
-      <button class="btn btn-primary" onclick="saveEdit()">Save edits</button>
+      <button class="btn btn-primary" onclick="saveEdit()">Save changes</button>
     </div>
-    <button class="btn btn-danger" onclick="deleteFromModal()">Remove totally</button>
+    <button class="btn btn-danger" onclick="deleteFromModal()">Delete this record</button>
   </div>
 </div>
 
 <div class="toast" id="toast"></div>
 
 <script>
-/* ---------- Firebase Initialization Credentials ---------- */
+/* =====================================================================
+   Heart Care — single-file pulse & medicine tracker
+   All data lives in localStorage + Cloud Synchronized via Firebase.
+   ===================================================================== */
+
+/* ---------- Firebase Credentials Setup ---------- */
 const firebaseConfig = {
   apiKey: "AIzaSyC24pdhc9sc6CLwAxx9FKobmDLl4OyFpms",
   authDomain: "heart-care-tracker.firebaseapp.com",
@@ -449,19 +567,29 @@ const firebaseConfig = {
   databaseURL: "https://heart-care-tracker-default-rtdb.asia-southeast1.firebasedatabase.app/"
 };
 
+// Initialize Firebase App & Database References
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
+/* ---------- Storage keys & in-memory state ---------- */
 const K_REC = 'hc_records_v1';
 const K_SET = 'hc_settings_v1';
 
-let records = [];            
+let records = [];            // [{id,type:'pulse'|'med',date,time,ts,bpm,sys,dia,name,dose,note}]
 let settings = {};
 const DEFAULT_SETTINGS = {
-  patientName: '', lowerLimit: 60, upperLimit: 100,
-  medList: ['Amlodipine', 'Metoprolol', 'Telmisartan'], reminderText: ''
+  patientName: '',
+  lowerLimit: 60,
+  upperLimit: 100,
+  bpSysLow: 90,
+  bpSysHigh: 140,
+  bpDiaLow: 60,
+  bpDiaHigh: 90,
+  medList: ['Amlodipine', 'Metoprolol', 'Telmisartan'],
+  reminderText: ''
 };
 
+/* ---------- Small helpers ---------- */
 const $ = id => document.getElementById(id);
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
 
@@ -472,6 +600,7 @@ function load(){
   records.forEach(r => { if(!r.ts) r.ts = toTs(r.date, r.time); });
 }
 
+// Rewritten storage functions to sync local copy + update cloud database
 function saveRecords(){ 
   localStorage.setItem(K_REC, JSON.stringify(records)); 
   db.ref('records').set(records);
@@ -481,25 +610,36 @@ function saveSettingsStore(){
   db.ref('settings').set(settings);
 }
 
+// Cloud Realtime Listener (Fires dynamically when you OR your brother save anything)
 function initFirebaseSync(){
-  db.ref('records').on('value', s => {
-    const d = s.val(); records = d ? Object.values(d) : [];
-    localStorage.setItem(K_REC, JSON.stringify(records)); refreshCurrentView();
+  db.ref('records').on('value', snapshot => {
+    const cloudData = snapshot.val();
+    records = cloudData ? Object.values(cloudData) : [];
+    localStorage.setItem(K_REC, JSON.stringify(records));
+    refreshCurrentView();
   });
-  db.ref('settings').on('value', s => {
-    const d = s.val(); if(d){ settings = Object.assign({}, DEFAULT_SETTINGS, d); localStorage.setItem(K_SET, JSON.stringify(settings)); refreshCurrentView(); }
+
+  db.ref('settings').on('value', snapshot => {
+    const cloudSett = snapshot.val();
+    if(cloudSett){
+      settings = Object.assign({}, DEFAULT_SETTINGS, cloudSett);
+      localStorage.setItem(K_SET, JSON.stringify(settings));
+      refreshCurrentView();
+    }
   });
 }
 
+// Redraw whichever page view the user is looking at right now
 function refreshCurrentView() {
-  const active = document.querySelector('.view.active'); if(!active) return;
-  if(active.id === 'view-home') renderDashboard();
-  if(active.id === 'view-trends') renderTrends();
-  if(active.id === 'view-records') renderRecords();
-  if(active.id === 'view-settings') renderSettings();
+  const activeView = document.querySelector('.view.active');
+  if(!activeView) return;
+  if(activeView.id === 'view-home') renderDashboard();
+  if(activeView.id === 'view-trends') renderTrends();
+  if(activeView.id === 'view-records') renderRecords();
+  if(activeView.id === 'view-settings') renderSettings();
 }
 
-function toTs(d, t){ const dt = new Date((d||'') + 'T' + (t||'00:00')); return isNaN(dt) ? 0 : dt.getTime(); }
+function toTs(date, time){ const d = new Date((date||'') + 'T' + (time||'00:00')); return isNaN(d) ? 0 : d.getTime(); }
 function pad(n){ return String(n).padStart(2,'0'); }
 function todayStr(d){ d = d || new Date(); return d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate()); }
 function nowTime(){ const d = new Date(); return pad(d.getHours()) + ':' + pad(d.getMinutes()); }
@@ -510,361 +650,772 @@ function niceDate(date){
   return d.toLocaleDateString(undefined,{weekday:'short',day:'numeric',month:'short'});
 }
 function niceTime(t){
-  if(!t) return ''; const [h,m] = t.split(':').map(Number);
+  if(!t) return '';
+  const [h,m] = t.split(':').map(Number);
   const ap = h>=12 ? 'PM':'AM'; const h12 = (h%12)||12;
   return h12 + ':' + pad(m) + ' ' + ap;
 }
 
-function classify(b){
-  if(b > settings.upperLimit) return {label:'High', cls:'high'};
-  if(b < settings.lowerLimit) return {label:'Low', cls:'low'};
+function classify(bpm){
+  if(bpm > settings.upperLimit) return {label:'High', cls:'high'};
+  if(bpm < settings.lowerLimit) return {label:'Low',  cls:'low'};
   return {label:'Normal', cls:'normal'};
 }
-function statusColor(c){ return c==='high'?'#dc3545':c==='low'?'#2f72c9':'#1f9d63'; }
+function classifyBP(sys, dia){
+  if(sys == null || dia == null) return null;
+  if(sys > settings.bpSysHigh || dia > settings.bpDiaHigh) return {label:'High', cls:'high'};
+  if(sys < settings.bpSysLow  || dia < settings.bpDiaLow)  return {label:'Low',  cls:'low'};
+  return {label:'Normal', cls:'normal'};
+}
+function statusColor(cls){ return cls==='high'?getCss('--high'):cls==='low'?getCss('--low'):getCss('--normal'); }
+function getCss(v){ return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
 
+/* =====================================================================
+   VIEW SWITCHING
+   ===================================================================== */
 function show(name){
   document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.id === 'view-' + name));
   document.querySelectorAll('.tabbar button').forEach(b => b.classList.toggle('on', b.dataset.v === name));
-  window.scrollTo({top:0, behavior:'instant'});
-  if(name === 'home') renderDashboard(); if(name === 'trends') renderTrends(); if(name === 'records') renderRecords(); if(name === 'settings') renderSettings();
+  window.scrollTo({top:0, behavior:'instant' in window ? 'instant' : 'auto'});
+  if(name === 'home') renderDashboard();
+  if(name === 'trends') renderTrends();
+  if(name === 'records') renderRecords();
+  if(name === 'settings') renderSettings();
 }
 
-function openAdd(w){ show('add'); const c = w === 'med' ? $('addMedCard') : $('addPulseCard'); setTimeout(() => c.scrollIntoView({behavior:'smooth', block:'start'}), 60); }
+function openAdd(which){
+  show('add');
+  const card = which === 'med' ? $('addMedCard') : $('addPulseCard');
+  setTimeout(() => card.scrollIntoView({behavior:'smooth', block:'start'}), 60);
+}
 
 /* =====================================================================
-   DASHBOARD IMPLEMENTATION
+   DASHBOARD (Home)
    ===================================================================== */
 function renderDashboard(){
-  $('patientTitle').textContent = settings.patientName ? settings.patientName + "'s Tracker" : 'Heart Care';
-  $('reminderBanner').innerHTML = settings.reminderText ? `<div class="card" style="background:var(--med-soft);border-color:#f1e2bf"><div class="card-title" style="color:#9a6a12"><span class="ico">🔔</span>Prescription Reminder Directions</div><div style="font-size:14.5px;color:#7a5a13">${esc(settings.reminderText)}</div></div>` : '';
-  const t = todayStr(); const todays = records.filter(r => r.date === t);
+  $('patientTitle').textContent = settings.patientName ? settings.patientName : 'Heart Care';
+  $('patientSub').textContent = settings.patientName ? 'Pulse & medicine tracker' : 'Pulse & medicine tracker';
+  $('reminderBanner').innerHTML = settings.reminderText
+    ? `<div class="card" style="background:var(--med-soft);border-color:#f1e2bf">
+         <div class="card-title" style="color:#9a6a12"><span class="ico">🔔</span>Reminder</div>
+         <div style="font-size:14.5px;color:#7a5a13">${esc(settings.reminderText)}</div></div>`
+    : '';
+
+  const t = todayStr();
+  const todays = records.filter(r => r.date === t);
   const pulses = todays.filter(r => r.type === 'pulse').sort((a,b) => a.ts - b.ts);
-  const meds = todays.filter(r => r.type === 'med').sort((a,b) => a.ts - b.ts);
+  const meds   = todays.filter(r => r.type === 'med').sort((a,b) => a.ts - b.ts);
 
   if(pulses.length){
-    const lat = pulses[pulses.length - 1]; const c = classify(lat.bpm);
-    $('latestBpm').textContent = lat.bpm;
-    $('latestWhen').innerHTML = 'Measured at ' + niceTime(lat.time) + (lat.sys && lat.dia ? ` · 🩺 BP: ${lat.sys}/${lat.dia} mmHg` : '');
-    const p = $('latestStatus'); p.style.display = 'inline-flex'; p.innerHTML = `<span class="dot" style="background:${statusColor(c.cls)}"></span>${c.label}`;
+    const latest = pulses[pulses.length - 1];
+    const c = classify(latest.bpm);
+    $('latestBpm').textContent = latest.bpm;
+    $('latestWhen').textContent = 'Measured at ' + niceTime(latest.time);
+    const pill = $('latestStatus'); pill.style.display = 'inline-flex';
+    pill.innerHTML = `<span class="dot" style="background:${statusColor(c.cls)}"></span>${c.label}`;
+    if(latest.sys != null && latest.dia != null){
+      const bp = $('latestBp'); bp.style.display = 'block';
+      bp.textContent = '🩸 ' + latest.sys + '/' + latest.dia + ' mmHg';
+    } else { $('latestBp').style.display = 'none'; }
   } else {
-    $('latestBpm').textContent = '--'; $('latestWhen').textContent = 'No reading yet logged today'; $('latestStatus').style.display = 'none';
+    $('latestBpm').textContent = '--';
+    $('latestWhen').textContent = 'No reading yet today';
+    $('latestStatus').style.display = 'none';
+    $('latestBp').style.display = 'none';
   }
 
   if(pulses.length){
-    const v = pulses.map(p => p.bpm); $('stMin').textContent = Math.min(...v); $('stMax').textContent = Math.max(...v); $('stAvg').textContent = Math.round(v.reduce((a,b)=>a+b,0) / v.length);
-  } else { $('stMin').textContent = $('stMax').textContent = $('stAvg').textContent = '--'; }
+    const vals = pulses.map(p => p.bpm);
+    $('stMin').textContent = Math.min(...vals);
+    $('stMax').textContent = Math.max(...vals);
+    $('stAvg').textContent = Math.round(vals.reduce((a,b)=>a+b,0) / vals.length);
+  } else {
+    $('stMin').textContent = $('stMax').textContent = $('stAvg').textContent = '--';
+  }
 
   $('todayPulse').innerHTML = pulses.length ? pulses.map(p => {
     const c = classify(p.bpm);
-    return `<div class="row"><div class="ico pulse">❤️</div><div class="main"><div class="t1">${p.bpm} <span style="font-size:13px;color:var(--muted)">bpm</span></div>${p.sys&&p.dia?`<div style="font-weight:700;color:#c0392b;font-size:14px">🩺 BP: ${p.sys}/${p.dia} mmHg</div>`:''}${p.note?`<div class="t2">${esc(p.note)}</div>`:''}</div><span class="badge b-${c.cls}"><span class="dot"></span>${c.label}</span><div class="time">${niceTime(p.time)}</div></div>`;
-  }).join('') : '<div class="empty">No vitals registered today.</div>';
+    return `<div class="row">
+      <div class="ico pulse">❤️</div>
+      <div class="main"><div class="t1">${p.bpm} <span style="font-weight:500;color:var(--muted);font-size:13px">bpm</span></div>
+        ${p.sys != null && p.dia != null ? `<div class="t2">🩸 ${p.sys}/${p.dia} mmHg</div>` : ''}
+        ${p.note ? `<div class="t2">${esc(p.note)}</div>` : ''}</div>
+      <span class="badge b-${c.cls}"><span class="dot"></span>${c.label}</span>
+      <div class="time">${niceTime(p.time)}</div></div>`;
+  }).join('') : '<div class="empty">No pulse readings today yet.</div>';
 
-  $('todayMeds').innerHTML = meds.length ? meds.map(m => `<div class="row"><div class="ico med">💊</div><div class="main"><div class="t1">${esc(m.name)}${m.dose?` · <span style="font-size:14px;color:var(--muted)">${esc(m.dose)}</span>`:''}</div>${m.note?`<div class="t2">${esc(m.note)}</div>`:''}</div><div class="time">${niceTime(m.time)}</div></div>`).join('') : '<div class="empty">No medications checked off today.</div>';
+  $('todayMeds').innerHTML = meds.length ? meds.map(m => `<div class="row">
+      <div class="ico med">💊</div>
+      <div class="main"><div class="t1">${esc(m.name || 'Medicine')}${m.dose ? ` · <span style="font-weight:500;color:var(--muted)">${esc(m.dose)}</span>` : ''}</div>
+        ${m.note ? `<div class="t2">${esc(m.note)}</div>` : ''}</div>
+      <div class="time">${niceTime(m.time)}</div></div>`).join('')
+    : '<div class="empty">No medicine recorded today yet.</div>';
 }
 
+/* =====================================================================
+   ADD FORMS
+   ===================================================================== */
 function savePulse(){
-  const b = parseInt($('p_bpm').value, 10); const s = $('p_sys').value.trim(); const d = $('p_dia').value.trim();
-  if(!b || b<20 || b>300){ toast('Enter a valid heart rate number'); return; }
-  records.push({ id:uid(), type:'pulse', date:$('p_date').value, time:$('p_time').value, ts:toTs($('p_date').value,$('p_time').value), bpm:b, sys:s?parseInt(s,10):null, dia:d?parseInt(d,10):null, note:$('p_note').value.trim() });
-  saveRecords(); $('p_bpm').value=''; $('p_sys').value=''; $('p_dia').value=''; $('p_note').value=''; $('p_time').value=nowTime(); toast('Saved ✓'); renderDashboard();
+  const bpm = parseInt($('p_bpm').value, 10);
+  if(!$('p_date').value){ toast('Please pick a date'); return; }
+  if(!$('p_time').value){ toast('Please pick a time'); return; }
+  if(!bpm || bpm < 20 || bpm > 300){ toast('Enter a pulse between 20 and 300'); return; }
+  const sysRaw = $('p_sys').value, diaRaw = $('p_dia').value;
+  let sys = null, dia = null;
+  if(sysRaw || diaRaw){
+    sys = parseInt(sysRaw,10); dia = parseInt(diaRaw,10);
+    if(!sys || !dia){ toast('Enter both systolic and diastolic, or leave both blank'); return; }
+    if(sys < 50 || sys > 260 || dia < 30 || dia > 160){ toast('Check the BP numbers entered'); return; }
+    if(sys <= dia){ toast('Systolic should be higher than diastolic'); return; }
+  }
+  records.push({ id:uid(), type:'pulse', date:$('p_date').value, time:$('p_time').value,
+    ts:toTs($('p_date').value,$('p_time').value), bpm, sys, dia, note:$('p_note').value.trim() });
+  saveRecords();
+  $('p_bpm').value = ''; $('p_sys').value = ''; $('p_dia').value = ''; $('p_note').value = ''; $('p_time').value = nowTime();
+  toast('Pulse saved ✓'); renderDashboard();
 }
 
 function saveMed(){
-  const n = $('m_name').value.trim(); if(!n){ toast('Enter drug name'); return; }
-  records.push({ id:uid(), type:'med', date:$('m_date').value, time:$('m_time').value, ts:toTs($('m_date').value,$('m_time').value), name:n, dose:$('m_dose').value.trim(), note:$('m_note').value.trim() });
-  saveRecords(); if(!settings.medList.some(x=>x.toLowerCase()===n.toLowerCase())){ settings.medList.push(n); saveSettingsStore(); refreshMedDatalist(); }
-  $('m_dose').value=''; $('m_note').value=''; $('m_time').value=nowTime(); toast('Recorded ✓'); renderDashboard();
-}
-
-/* =====================================================================
-   TRENDS REPORT & HIGH CONTRAST CHART GENERATION
-   ===================================================================== */
-let chartPeriod = '7days';
-
-function renderTrends(){
-  const html = buildExtra(chartPeriod, 'c', 'renderTrends()'); $('chartExtra').innerHTML = html; $('chartExtra').classList.toggle('hide', !html);
-  const range = getRange(chartPeriod, { start:$('c_start')?$('c_start').value:null, end:$('c_end')?$('c_end').value:null });
-  const inr = records.filter(r => r.ts >= range.start && r.ts <= range.end);
-  const data = {
-    pulse: inr.filter(r=>r.type==='pulse').sort((a,b)=>a.ts-b.ts),
-    meds: inr.filter(r=>r.type==='med').sort((a,b)=>a.ts-b.ts)
-  };
-
-  drawMedicalChart(data, range);
-  
-  $('chartMedList').innerHTML = data.meds.length ? '<b>💊 Logged Medications in window:</b> ' + data.meds.map(m=>`${niceDate(m.date)} ${niceTime(m.time)} (${esc(m.name)})`).join(' · ') : '';
-  
-  $('chartReadingTimeList').innerHTML = data.pulse.length ? `<div style="margin-top:14px;padding:12px;background:#f5f8f8;border:1px solid var(--line);border-radius:var(--r-sm);font-size:13px;color:#000;"><strong style="color:var(--teal-dark)">🕒 Doctor Quick-Look Timestamp Table:</strong><br/>` + data.pulse.map(p=>`• <b>${niceDate(p.date)} @ ${niceTime(p.time)}</b> → Pulse: <b>${p.bpm} bpm</b>${p.sys?` | BP: <b>${p.sys}/${p.dia}</b>`:''}`).join('<br/>') + `</div>` : '';
-  
-  renderPeriodStats($('chartStats'), data, range);
-}
-
-function drawMedicalChart(data, range){
-  const canvas = $('chartCanvas');
-  if(chartInstance){ try{ chartInstance.destroy(); }catch(e){} chartInstance = null; }
-  
-  if(!window.Chart || window.__chartjsFailed){ drawCanvasFallback(canvas, data, range); return; }
-
-  const single = range.spanDays <= 1;
-  const datasets = [];
-
-  // ❤️ 1. Pulse Stream (SOLID line, filled circle points)
-  datasets.push({
-    label: 'Pulse (Heart Rate)',
-    data: data.pulse.map(p => ({ x: p.ts, y: p.bpm, t: p.time, note: p.note, sys:p.sys, dia:p.dia })),
-    borderColor: '#111111', 
-    borderWidth: 3,
-    tension: 0.1,
-    pointStyle: 'circle',
-    pointRadius: 6,
-    pointBackgroundColor: '#000000',
-    pointBorderColor: '#ffffff',
-    pointBorderWidth: 2,
-    spanGaps: true,
-    parsing: false
-  });
-
-  // 🩺 2. Check for BP values to overlay (Triangles and Squares with high-contrast patterns)
-  const hasBP = data.pulse.some(p => p.sys || p.dia);
-  if(hasBP){
-    datasets.push({
-      label: 'Systolic BP (Top #)',
-      data: data.pulse.filter(p => p.sys).map(p => ({ x: p.ts, y: parseInt(p.sys, 10) })),
-      borderColor: '#333333',
-      borderWidth: 2.5,
-      borderDash: [6, 4], // HIGH CONTRAST DASH
-      pointStyle: 'triangle',
-      pointRadius: 6,
-      pointBackgroundColor: '#ffffff',
-      pointBorderColor: '#000000',
-      pointBorderWidth: 2,
-      spanGaps: true,
-      parsing: false
-    });
-    datasets.push({
-      label: 'Diastolic BP (Bottom #)',
-      data: data.pulse.filter(p => p.dia).map(p => ({ x: p.ts, y: parseInt(p.dia, 10) })),
-      borderColor: '#666666',
-      borderWidth: 2,
-      borderDash: [2, 3], // HIGH CONTRAST DOT
-      pointStyle: 'rect',
-      pointRadius: 6,
-      pointBackgroundColor: '#444444',
-      pointBorderColor: '#ffffff',
-      pointBorderWidth: 1.5,
-      spanGaps: true,
-      parsing: false
-    });
+  if(!$('m_date').value){ toast('Please pick a date'); return; }
+  if(!$('m_time').value){ toast('Please pick a time'); return; }
+  if(!$('m_name').value.trim()){ toast('Enter a medicine name'); return; }
+  const name = $('m_name').value.trim();
+  records.push({ id:uid(), type:'med', date:$('m_date').value, time:$('m_time').value,
+    ts:toTs($('m_date').value,$('m_time').value), name, dose:$('m_dose').value.trim(), note:$('m_note').value.trim() });
+  saveRecords();
+  if(name && !settings.medList.some(x => x.toLowerCase() === name.toLowerCase())){
+    settings.medList.push(name); saveSettingsStore(); refreshMedDatalist();
   }
-
-  const meds = data.meds;
-  chartInstance = new Chart(canvas.getContext('2d'), {
-    type: 'line',
-    data: { datasets: datasets },
-    options: {
-      responsive: true, maintainAspectRatio: false, animation: false,
-      scales: {
-        x: {
-          type: 'linear', min: range.start, max: range.end,
-          ticks: {
-            maxTicksLimit: 7, color: '#000000', font: { weight: 'bold', size: 11 },
-            callback: v => single ? niceTime(new Date(v).toTimeString().slice(0,5)) : new Date(v).toLocaleDateString(undefined,{day:'numeric',month:'short'})
-          },
-          grid: { color: 'rgba(0,0,0,0.08)' }
-        },
-        y: {
-          ticks: { color: '#000000', font: { weight: 'bold', size: 11 } },
-          grid: { color: 'rgba(0,0,0,0.08)' }
-        }
-      },
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          callbacks: {
-            title: items => `🕒 Time: ${niceTime(items[0].raw.t)}`,
-            label: item => {
-              if(item.dataset.label.includes('Pulse')) {
-                let txt = `Pulse: ${item.raw.y} bpm`;
-                if(item.raw.sys) txt += ` | BP: ${item.raw.sys}/${item.raw.dia}`;
-                if(item.raw.note) txt += ` [Notes: ${item.raw.note}]`;
-                return txt;
-              }
-              return `${item.dataset.label}: ${item.raw.y} mmHg`;
-            }
-          }
-        }
-      }
-    },
-    plugins: [{
-      id: 'medLines',
-      afterDatasetsDraw(chart){
-        const {ctx, chartArea, scales} = chart; if(!scales.x) return;
-        meds.forEach(m => {
-          const x = scales.x.getPixelForValue(m.ts);
-          if(x >= chartArea.left && x <= chartArea.right){
-            ctx.save(); ctx.strokeStyle = '#e08a1e'; ctx.lineWidth = 2;
-            ctx.beginPath(); ctx.moveTo(x, chartArea.top); ctx.lineTo(x, chartArea.bottom); ctx.stroke();
-            ctx.fillStyle = '#e08a1e'; ctx.font = '10px sans-serif';
-            ctx.fillText('💊 Dose', x + 4, chartArea.top + 12); ctx.restore();
-          }
-        });
-      }
-    }]
-  });
-}
-
-/* ---------- 📥 IMAGE CONVERTER EXCEL TOOL ---------- */
-function downloadChartImg(){
-  const canvas = $('chartCanvas');
-  // Create a crisp, plain white canvas clone context so that it pastes cleanly into an Excel sheet or report
-  const dump = document.createElement('canvas');
-  dump.width = canvas.width; dump.height = canvas.height + 40;
-  const ctx = dump.getContext('2d');
-  
-  ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, dump.width, dump.height);
-  ctx.drawImage(canvas, 0, 0);
-  
-  // Stamp the printed context summary directly into the footer text lines
-  ctx.fillStyle = '#000000'; ctx.font = 'bold 12px sans-serif'; ctx.textAlign = 'center';
-  ctx.fillText(`Medical Trend Log Report Chart — Generated on ${new Date().toLocaleDateString()}`, dump.width/2, dump.height - 15);
-  
-  const link = document.createElement('a');
-  link.href = dump.toDataURL('image/png');
-  link.download = `medical_chart_${todayStr()}.png`;
-  document.body.appendChild(link); link.click(); document.body.removeChild(link);
-  toast('Chart Image Downloaded! You can insert this file directly into Excel now ✓');
+  $('m_dose').value = ''; $('m_note').value = ''; $('m_time').value = nowTime();
+  toast('Medicine saved ✓'); renderDashboard();
 }
 
 /* =====================================================================
-   CORE ENGINE BACKEND CONTROLS (DATAFILTERS, EXPORTS, STORAGE RESTORE)
+   DATE RANGE / FILTER LOGIC
    ===================================================================== */
-function getRange(p, ex){
-  const now = new Date(); let start, end, spanDays;
-  if(p === 'today'){ start = new Date(now.setHours(0,0,0,0)); end = new Date(now.setHours(23,59,59,999)); spanDays = 1; }
-  else if(p === 'month'){ start = new Date(now.getFullYear(), now.getMonth(), 1); end = new Date(now.getFullYear(), now.getMonth()+1, 0,23,59,59); spanDays = 30; }
-  else if(p === 'custom' && ex.start && ex.end){ start = new Date(ex.start + 'T00:00'); end = new Date(ex.end + 'T23:59:59'); spanDays = Math.max(1, Math.round((end-start)/86400000)); }
-  else { start = new Date(now); start.setDate(start.getDate()-6); start.setHours(0,0,0,0); end = new Date(); end.setHours(23,59,59,999); spanDays = 7; }
-  return { start:+start, end:+end, label: start.toLocaleDateString() + ' to ' + end.toLocaleDateString(), spanDays };
+function getRange(period, extra){
+  const now = new Date();
+  let start, end, label, spanDays;
+  if(period === 'today'){
+    start = new Date(now); start.setHours(0,0,0,0);
+    end = new Date(now); end.setHours(23,59,59,999);
+    label = 'Today, ' + niceDate(todayStr()); spanDays = 1;
+  } else if(period === '7days'){
+    end = new Date(now); end.setHours(23,59,59,999);
+    start = new Date(now); start.setDate(start.getDate()-6); start.setHours(0,0,0,0);
+    label = 'Last 7 days'; spanDays = 7;
+  } else if(period === 'month'){
+    start = new Date(now.getFullYear(), now.getMonth(), 1, 0,0,0,0);
+    end = new Date(now.getFullYear(), now.getMonth()+1, 0, 23,59,59,999);
+    label = now.toLocaleDateString(undefined,{month:'long',year:'numeric'}); spanDays = 31;
+  } else if(period === 'selmonth'){
+    const mv = (extra && extra.month) || todayStr().slice(0,7);
+    const [y,m] = mv.split('-').map(Number);
+    start = new Date(y, m-1, 1, 0,0,0,0);
+    end = new Date(y, m, 0, 23,59,59,999);
+    label = start.toLocaleDateString(undefined,{month:'long',year:'numeric'}); spanDays = 31;
+  } else {
+    const s = extra && extra.start, e = extra && extra.end;
+    start = new Date((s || todayStr()) + 'T00:00');
+    end   = new Date((e || todayStr()) + 'T23:59:59');
+    label = (s?niceDate(s):'?') + ' → ' + (e?niceDate(e):'?');
+    spanDays = Math.max(1, Math.round((end-start)/86400000));
+  }
+  return { start:+start, end:+end, label, spanDays };
 }
 
-function buildExtra(p, pr, call){
-  if(p==='custom') return `<div class="two"><label class="field"><span>From</span><input type="date" id="${pr}_start" value="${todayStr()}" onchange="${call}"></label><label class="field"><span>To</span><input type="date" id="${pr}_end" value="${todayStr()}" onchange="${call}"></label></div>`;
+function inRange(r, range){ return r.ts >= range.start && r.ts <= range.end; }
+
+function buildExtra(period, prefix, onChange){
+  if(period === 'selmonth'){
+    return `<label class="field" style="margin:0"><span>Choose month</span>
+      <input type="month" id="${prefix}_month" value="${todayStr().slice(0,7)}" onchange="${onChange}"></label>`;
+  }
+  if(period === 'custom'){
+    const t = todayStr();
+    const wk = new Date(); wk.setDate(wk.getDate()-6);
+    return `<div class="two">
+      <label class="field" style="margin:0"><span>From</span><input type="date" id="${prefix}_start" value="${todayStr(wk)}" onchange="${onChange}"></label>
+      <label class="field" style="margin:0"><span>To</span><input type="date" id="${prefix}_end" value="${t}" onchange="${onChange}"></label></div>`;
+  }
   return '';
 }
 
-function renderPeriodStats(target, data, range){
-  const p = data.pulse; if(!p.length){ target.innerHTML = '<div class="empty">No metrics logged inside chosen parameters.</div>'; return; }
-  const v = p.map(x=>x.bpm); const h = p.reduce((a,b)=>b.bpm>a.bpm?b:a); const l = p.reduce((a,b)=>b.bpm<a.bpm?b:a);
-  
-  target.innerHTML = `<div class="note">Range Window: <b>${range.label}</b></div>
-    <div class="stats" style="margin-top:10px">
-      <div class="stat"><div class="v num">${p.length}</div><div class="k">Log Captures</div></div>
-      <div class="stat"><div class="v num">${Math.round(v.reduce((a,b)=>a+b,0)/v.length)}</div><div class="k">Avg Pulse</div></div>
-      <div class="stat"><div class="v num">${data.meds.length}</div><div class="k">Meds Administered</div></div>
-    </div>
-    <div class="row" style="margin-top:10px"><div class="main"><div class="t1">Peak Measured Pulse: <b>${h.bpm} bpm</b> at ${niceTime(h.time)}</div></div></div>
-    <div class="row"><div class="main"><div class="t1">Lowest Measured Pulse: <b>${l.bpm} bpm</b> at ${niceTime(l.time)}</div></div></div>`;
+/* =====================================================================
+   TRENDS / CHARTS
+   ===================================================================== */
+let chartPeriod = 'today';
+
+function bindSeg(segId, getPeriod, setPeriod, rerender){
+  $(segId).querySelectorAll('button').forEach(b => {
+    b.onclick = () => {
+      $(segId).querySelectorAll('button').forEach(x => x.classList.remove('on'));
+      b.classList.add('on'); setPeriod(b.dataset.p); rerender();
+    };
+  });
 }
+
+function renderTrends(){
+  const ex = $('chartExtra');
+  const extraHtml = buildExtra(chartPeriod, 'c', 'renderTrends()');
+  ex.innerHTML = extraHtml; ex.classList.toggle('hide', !extraHtml);
+
+  const extra = {
+    month: $('c_month') ? $('c_month').value : null,
+    start: $('c_start') ? $('c_start').value : null,
+    end:   $('c_end')   ? $('c_end').value   : null
+  };
+  const range = getRange(chartPeriod, extra);
+  const data = prepData(range);
+
+  drawChart(data, range);
+  renderChartMedList(data);
+  renderPeriodStats($('chartStats'), data, range);
+}
+
+function prepData(range){
+  const inr = records.filter(r => inRange(r, range));
+  const pulse = inr.filter(r => r.type === 'pulse').map(r => ({...r})).sort((a,b)=>a.ts-b.ts);
+  const meds  = inr.filter(r => r.type === 'med').map(r => ({...r})).sort((a,b)=>a.ts-b.ts);
+  return { pulse, meds, all: inr };
+}
+
+function renderChartMedList(data){
+  const box = $('chartMedList');
+  if(!data.meds.length){ box.innerHTML = ''; return; }
+  box.innerHTML = '<b>💊 Medicine in this view:</b> ' + data.meds.map(m =>
+    `${niceTime(m.time)}${m.date !== todayStr() && data.meds.length ? '' : ''} ${esc(m.name||'')}`.trim()).join(' · ');
+}
+
+let chartInstance = null;
+function drawChart(data, range){
+  const canvas = $('chartCanvas');
+  if(chartInstance){ try{ chartInstance.destroy(); }catch(e){} chartInstance = null; }
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(1,0,0,1,0,0);
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  if(window.Chart && !window.__chartjsFailed){
+    try{ drawWithChartJs(canvas, data, range); return; }
+    catch(e){ console.warn('Chart.js failed, using fallback', e); }
+  }
+  drawCanvasFallback(canvas, data, range);
+}
+
+function drawWithChartJs(canvas, data, range){
+  const lower = settings.lowerLimit, upper = settings.upperLimit;
+  const meds = data.meds;
+  const carePlugin = {
+    id:'care',
+    beforeDatasetsDraw(chart){
+      const {ctx, chartArea, scales} = chart; if(!scales.y) return;
+      const yTop = scales.y.getPixelForValue(upper), yBot = scales.y.getPixelForValue(lower);
+      ctx.save(); ctx.fillStyle = 'rgba(31,157,99,.10)';
+      ctx.fillRect(chartArea.left, Math.min(yTop,yBot), chartArea.right-chartArea.left, Math.abs(yBot-yTop));
+      ctx.restore();
+    },
+    afterDatasetsDraw(chart){
+      const {ctx, chartArea, scales} = chart; if(!scales.x) return;
+      meds.forEach(m => {
+        const x = scales.x.getPixelForValue(m.ts);
+        if(x < chartArea.left-1 || x > chartArea.right+1) return;
+        ctx.save();
+        ctx.strokeStyle = '#e08a1e'; ctx.setLineDash([5,4]); ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(x, chartArea.top); ctx.lineTo(x, chartArea.bottom); ctx.stroke();
+        ctx.setLineDash([]); ctx.fillStyle = '#e08a1e';
+        ctx.beginPath(); ctx.moveTo(x, chartArea.top+1); ctx.lineTo(x-5, chartArea.top-7); ctx.lineTo(x+5, chartArea.top-7); ctx.closePath(); ctx.fill();
+        ctx.restore();
+      });
+      if(single){
+        ctx.save();
+        ctx.font = '10.5px -apple-system,Roboto,sans-serif'; ctx.fillStyle = '#65807d';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+        data.pulse.forEach(p => {
+          const x = scales.x.getPixelForValue(p.ts), y = scales.y.getPixelForValue(p.bpm);
+          if(x < chartArea.left-1 || x > chartArea.right+1) return;
+          ctx.fillText(niceTime(p.time), x, y-9);
+        });
+        ctx.restore();
+      }
+    }
+  };
+
+  const single = range.spanDays <= 1;
+  const bpPts = data.pulse.filter(p => p.sys != null && p.dia != null);
+  const datasets = [{
+    label:'Pulse',
+    data: data.pulse.map(p => ({x:p.ts, y:p.bpm, t:p.time, note:p.note, c:classify(p.bpm)})),
+    parsing:false,
+    borderColor:'rgba(15,138,134,.55)', borderWidth:2, tension:.3,
+    pointRadius:5, pointHoverRadius:7,
+    pointBackgroundColor: ctx => statusColor((ctx.raw && ctx.raw.c ? ctx.raw.c.cls : 'normal')),
+    pointBorderColor:'#fff', pointBorderWidth:2, spanGaps:true
+  }];
+  if(bpPts.length){
+    datasets.push({
+      label:'Systolic',
+      data: bpPts.map(p => ({x:p.ts, y:p.sys, t:p.time})),
+      parsing:false, borderColor:'#d6336c', borderDash:[5,3], borderWidth:1.75, tension:.3,
+      pointRadius:4, pointHoverRadius:6, pointStyle:'rectRot',
+      pointBackgroundColor:'#d6336c', pointBorderColor:'#fff', pointBorderWidth:1.5, spanGaps:true
+    });
+    datasets.push({
+      label:'Diastolic',
+      data: bpPts.map(p => ({x:p.ts, y:p.dia, t:p.time})),
+      parsing:false, borderColor:'#2f72c9', borderDash:[5,3], borderWidth:1.75, tension:.3,
+      pointRadius:4, pointHoverRadius:6, pointStyle:'triangle',
+      pointBackgroundColor:'#2f72c9', pointBorderColor:'#fff', pointBorderWidth:1.5, spanGaps:true
+    });
+  }
+  chartInstance = new Chart(canvas.getContext('2d'), {
+    type:'line',
+    data:{ datasets },
+    options:{
+      responsive:true, maintainAspectRatio:false, animation:false,
+      layout:{padding:{top:single?26:10}},
+      interaction:{ mode:'nearest', intersect:false, axis:'x' },
+      scales:{
+        x:{ type:'linear', min:range.start, max:range.end,
+            ticks:{ maxTicksLimit: single?6:7, color:'#65807d', font:{size:11},
+              callback:v => single ? niceTime(new Date(v).toTimeString().slice(0,5))
+                                    : new Date(v).toLocaleDateString(undefined,{day:'numeric',month:'short'}) },
+            grid:{color:'rgba(0,0,0,.05)'} },
+        y:{ ticks:{color:'#65807d', font:{size:11}}, grid:{color:'rgba(0,0,0,.05)'},
+            title:{display:true, text: bpPts.length?'bpm / mmHg':'bpm', color:'#65807d'} }
+      },
+      plugins:{
+        legend:{display: bpPts.length>0, position:'bottom', labels:{boxWidth:14, font:{size:11.5}, color:'#65807d'}},
+        tooltip:{ callbacks:{
+          title: items => {
+            const r = items[0].raw; return niceTime(r.t) + (single?'':' · ' + new Date(items[0].raw.x).toLocaleDateString());
+          },
+          label: it => {
+            if(it.dataset.label === 'Pulse') return `${it.raw.y} bpm — ${it.raw.c.label}` + (it.raw.note?` · ${it.raw.note}`:'');
+            return `${it.dataset.label}: ${it.raw.y} mmHg`;
+          }
+        }}
+      }
+    },
+    plugins:[carePlugin]
+  });
+}
+
+function drawCanvasFallback(canvas, data, range){
+  const dpr = window.devicePixelRatio || 1;
+  const cssW = canvas.clientWidth || canvas.parentElement.clientWidth || 320;
+  const cssH = canvas.clientHeight || 260;
+  canvas.width = cssW * dpr; canvas.height = cssH * dpr;
+  const ctx = canvas.getContext('2d'); ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,cssW,cssH);
+
+  const pad = {l:40, r:12, t:(range.spanDays<=1?28:16), b:30};
+  const W = cssW - pad.l - pad.r, H = cssH - pad.t - pad.b;
+
+  if(!data.pulse.length && !data.meds.length){
+    ctx.fillStyle = '#65807d'; ctx.font = '14px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText('No data in this period yet.', cssW/2, cssH/2);
+    return;
+  }
+
+  const vals = data.pulse.map(p => p.bpm);
+  const bpVals = data.pulse.flatMap(p => (p.sys != null && p.dia != null) ? [p.sys, p.dia] : []);
+  let ymin = Math.min(settings.lowerLimit, ...(vals.length?vals:[settings.lowerLimit]), ...(bpVals.length?bpVals:[settings.lowerLimit]));
+  let ymax = Math.max(settings.upperLimit, ...(vals.length?vals:[settings.upperLimit]), ...(bpVals.length?bpVals:[settings.upperLimit]));
+  ymin = Math.floor((ymin-6)/10)*10; ymax = Math.ceil((ymax+6)/10)*10;
+  if(ymax === ymin) ymax = ymin + 20;
+
+  const x0 = range.start, x1 = range.end === range.start ? range.start + 3600000 : range.end;
+  const sx = ts => pad.l + (x1===x0?0.5:(ts-x0)/(x1-x0)) * W;
+  const sy = v  => pad.t + (ymax-v)/(ymax-ymin) * H;
+
+  ctx.fillStyle = 'rgba(31,157,99,.10)';
+  ctx.fillRect(pad.l, sy(settings.upperLimit), W, sy(settings.lowerLimit)-sy(settings.upperLimit));
+
+  ctx.strokeStyle = 'rgba(0,0,0,.06)'; ctx.fillStyle = '#65807d';
+  ctx.font = '11px sans-serif'; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+  const yStep = Math.max(10, Math.round((ymax-ymin)/4/10)*10);
+  for(let v=ymin; v<=ymax; v+=yStep){
+    const y = sy(v);
+    ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(pad.l+W, y); ctx.stroke();
+    ctx.fillText(v, pad.l-6, y);
+  }
+
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  const single = range.spanDays <= 1; const ticks = single?5:6;
+  for(let i=0;i<=ticks;i++){
+    const ts = x0 + (x1-x0)*i/ticks; const x = sx(ts);
+    const d = new Date(ts);
+    const lab = single ? pad(d.getHours())+':'+pad(d.getMinutes())
+                       : d.toLocaleDateString(undefined,{day:'numeric',month:'short'});
+    ctx.fillText(lab, x, pad.t+H+6);
+  }
+
+  ctx.strokeStyle = '#e08a1e'; ctx.fillStyle = '#e08a1e';
+  data.meds.forEach(m => {
+    const x = sx(m.ts);
+    ctx.save(); ctx.setLineDash([5,4]); ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(x, pad.t); ctx.lineTo(x, pad.t+H); ctx.stroke(); ctx.restore();
+    ctx.beginPath(); ctx.moveTo(x, pad.t+1); ctx.lineTo(x-5, pad.t-6); ctx.lineTo(x+5, pad.t-6); ctx.closePath(); ctx.fill();
+  });
+
+  if(data.pulse.length){
+    ctx.strokeStyle = 'rgba(15,138,134,.55)'; ctx.lineWidth = 2; ctx.beginPath();
+    data.pulse.forEach((p,i) => { const x=sx(p.ts), y=sy(p.bpm); i?ctx.lineTo(x,y):ctx.moveTo(x,y); });
+    ctx.stroke();
+    data.pulse.forEach(p => {
+      const x=sx(p.ts), y=sy(p.bpm); const c=classify(p.bpm);
+      ctx.beginPath(); ctx.arc(x,y,4.5,0,Math.PI*2);
+      ctx.fillStyle = statusColor(c.cls); ctx.fill();
+      ctx.lineWidth = 2; ctx.strokeStyle = '#fff'; ctx.stroke();
+    });
+    if(range.spanDays<=1){
+      ctx.font = '10px sans-serif'; ctx.fillStyle = '#65807d';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+      data.pulse.forEach(p => { ctx.fillText(niceTime(p.time), sx(p.ts), sy(p.bpm)-9); });
+    }
+  }
+
+  const bpPts = data.pulse.filter(p => p.sys != null && p.dia != null);
+  if(bpPts.length){
+    [['sys','#d6336c'],['dia','#2f72c9']].forEach(([key,color]) => {
+      ctx.save(); ctx.strokeStyle = color; ctx.setLineDash([5,3]); ctx.lineWidth = 1.75;
+      ctx.beginPath();
+      bpPts.forEach((p,i) => { const x=sx(p.ts), y=sy(p[key]); i?ctx.lineTo(x,y):ctx.moveTo(x,y); });
+      ctx.stroke(); ctx.setLineDash([]);
+      bpPts.forEach(p => {
+        const x=sx(p.ts), y=sy(p[key]);
+        ctx.beginPath(); ctx.arc(x,y,3.5,0,Math.PI*2);
+        ctx.fillStyle = color; ctx.fill();
+        ctx.lineWidth = 1.5; ctx.strokeStyle = '#fff'; ctx.stroke();
+      });
+      ctx.restore();
+    });
+  }
+}
+
+/* =====================================================================
+   PERIOD STATS / ANALYSIS
+   ===================================================================== */
+function periodStats(data){
+  const p = data.pulse;
+  if(!p.length) return { count:0, medCount:data.meds.length };
+  const vals = p.map(x=>x.bpm);
+  const hi = p.reduce((a,b)=>b.bpm>a.bpm?b:a);
+  const lo = p.reduce((a,b)=>b.bpm<a.bpm?b:a);
+  const bpPts = p.filter(x => x.sys != null && x.dia != null);
+  const bp = bpPts.length ? {
+    avgSys: Math.round(bpPts.reduce((a,b)=>a+b.sys,0)/bpPts.length),
+    avgDia: Math.round(bpPts.reduce((a,b)=>a+b.dia,0)/bpPts.length),
+    count: bpPts.length
+  } : null;
+  return {
+    count:p.length, medCount:data.meds.length,
+    avg:Math.round(vals.reduce((a,b)=>a+b,0)/vals.length),
+    hi:{bpm:hi.bpm, time:hi.time, date:hi.date},
+    lo:{bpm:lo.bpm, time:lo.time, date:lo.date},
+    bp
+  };
+}
+
+function renderPeriodStats(target, data, range){
+  const s = periodStats(data);
+  if(!s.count && !s.medCount){ target.innerHTML = '<div class="empty">No records in this period.</div>'; return; }
+  let html = `<div class="note" style="margin-bottom:12px"><b>${esc(range.label)}</b></div>`;
+  html += `<div class="stats" style="margin-bottom:12px">
+    <div class="stat"><div class="v num">${s.count||0}</div><div class="k">Readings</div></div>
+    <div class="stat"><div class="v num">${s.count?s.avg:'--'}</div><div class="k">Average</div></div>
+    <div class="stat"><div class="v num">${s.medCount}</div><div class="k">Doses</div></div></div>`;
+  if(s.count){
+    html += `<div class="row" style="border-bottom:1px solid var(--line)">
+      <div class="ico" style="background:#fde7e9">⬆️</div>
+      <div class="main"><div class="t1">Highest: ${s.hi.bpm} bpm</div>
+        <div class="t2">${niceTime(s.hi.time)} · ${niceDate(s.hi.date)}</div></div></div>`;
+    html += `<div class="row">
+      <div class="ico" style="background:#e7f0fb">⬇️</div>
+      <div class="main"><div class="t1">Lowest: ${s.lo.bpm} bpm</div>
+        <div class="t2">${niceTime(s.lo.time)} · ${niceDate(s.lo.date)}</div></div></div>`;
+  }
+  if(s.bp){
+    html += `<div class="row">
+      <div class="ico" style="background:#fde9f0">🩸</div>
+      <div class="main"><div class="t1">Average BP: ${s.bp.avgSys}/${s.bp.avgDia} mmHg</div>
+        <div class="t2">${s.bp.count} reading${s.bp.count>1?'s':''} with BP in this period</div></div></div>`;
+  }
+  target.innerHTML = html;
+}
+
+/* =====================================================================
+   RECORDS VIEW
+   ===================================================================== */
+let tablePeriod = '7days';
 
 function renderRecords(){
-  const html = buildExtra(tablePeriod, 't', 'renderRecords()'); $('tableExtra').innerHTML = html; $('tableExtra').classList.toggle('hide', !html);
-  const range = getRange(tablePeriod, { start:$('t_start')?$('t_start').value:null, end:$('t_end')?$('t_end').value:null });
-  const inr = records.filter(r => r.ts >= range.start && r.ts <= range.end);
-  const data = { pulse: inr.filter(r=>r.type==='pulse'), meds: inr.filter(r=>r.type==='med'), all: inr };
+  const ex = $('tableExtra');
+  const extraHtml = buildExtra(tablePeriod, 't', 'renderRecords()');
+  ex.innerHTML = extraHtml; ex.classList.toggle('hide', !extraHtml);
+
+  const extra = {
+    month: $('t_month') ? $('t_month').value : null,
+    start: $('t_start') ? $('t_start').value : null,
+    end:   $('t_end')   ? $('t_end').value   : null
+  };
+  const range = getRange(tablePeriod, extra);
+  const data = prepData(range);
 
   renderPeriodStats($('analysis'), data, range);
-
-  const evs = inr.slice().sort((a,b)=>a.ts-b.ts);
-  $('timeline').innerHTML = evs.length ? evs.map(e => {
-    if(e.type === 'pulse'){
-      const c = classify(e.bpm);
-      return `<div class="tl"><div class="node" style="background:${statusColor(c.cls)}"></div><div class="tt">${niceDate(e.date)} · ${niceTime(e.time)}</div><div class="td">❤️ <b>${e.bpm} bpm</b> (${c.label})${e.sys?` | 🩺 BP: <b>${e.sys}/${e.dia} mmHg</b>`:''}</div>${e.note?`<div class="nt">${esc(e.note)}</div>`:''}</div>`;
-    }
-    return `<div class="tl"><div class="node" style="background:var(--med)"></div><div class="tt">${niceDate(e.date)} · ${niceTime(e.time)}</div><div class="td">💊 Administered: <b>${esc(e.name)}</b> ${e.dose?`[${esc(e.dose)}]`:''}</div>${e.note?`<div class="nt">${esc(e.note)}</div>`:''}</div>`;
-  }).join('') : '<div class="empty">Timeline blank.</div>';
-
-  const tRows = inr.slice().sort((a,b)=>b.ts-a.ts);
-  $('recBody').innerHTML = tRows.length ? tRows.map(r => {
-    const isP = r.type==='pulse'; const c = isP?classify(r.bpm):null;
-    return `<tr>
-      <td>${niceDate(r.date)}</td><td>${niceTime(r.time)}</td>
-      <td><b>${isP?'Vitals/Pulse':'Medicine'}</b></td>
-      <td>${isP?`<b>${r.bpm} bpm</b> <span class="badge b-${c.cls}">${c.label}</span>${r.sys?`<br/><b style="color:#c0392b">BP: ${r.sys}/${r.dia}</b>`:''}`:esc(r.name)+(r.dose?` (${esc(r.dose)})`:'')}</td>
-      <td>${esc(r.note)}</td>
-      <td><div class="acts"><button class="iconbtn" onclick="openEdit('${r.id}')">✏️</button><button class="iconbtn del" onclick="quickDelete('${r.id}')">🗑️</button></div></td>
-    </tr>`;
-  }).join('') : '<tr><td colspan="6" style="text-align:center">No range logs available.</td></tr>';
+  renderTimeline(data);
+  renderTable(data);
 }
 
-function quickDelete(id){ if(confirm('Delete this record entry?')){ records=records.filter(r=>r.id!==id); saveRecords(); renderRecords(); toast('Removed'); } }
+function renderTimeline(data){
+  const events = data.all.slice().sort((a,b)=>a.ts-b.ts);
+  if(!events.length){ $('timeline').innerHTML = '<div class="empty">Nothing to show for this period.</div>'; return; }
+  $('timeline').innerHTML = events.map(e => {
+    if(e.type === 'pulse'){
+      const c = classify(e.bpm);
+      return `<div class="tl"><div class="node" style="background:${statusColor(c.cls)}"></div>
+        <div class="tt">${niceTime(e.time)} · ${niceDate(e.date)}</div>
+        <div class="td">❤️ ${e.bpm} bpm — ${c.label}${e.sys != null && e.dia != null ? ` · 🩸 ${e.sys}/${e.dia} mmHg` : ''}</div>
+        ${e.note?`<div class="nt">${esc(e.note)}</div>`:''}</div>`;
+    }
+    return `<div class="tl"><div class="node" style="background:var(--med)"></div>
+      <div class="tt">${niceTime(e.time)} · ${niceDate(e.date)}</div>
+      <div class="td">💊 ${esc(e.name||'Medicine')}${e.dose?` · ${esc(e.dose)}`:''}</div>
+      ${e.note?`<div class="nt">${esc(e.note)}</div>`:''}</div>`;
+  }).join('');
+}
+
+function renderTable(data){
+  const rows = data.all.slice().sort((a,b)=>b.ts-a.ts);
+  if(!rows.length){ $('recBody').innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:18px">No records.</td></tr>'; return; }
+  $('recBody').innerHTML = rows.map(r => {
+    let type, detail;
+    if(r.type === 'pulse'){
+      const c = classify(r.bpm);
+      type = '❤️ Pulse';
+      detail = `${r.bpm} bpm <span class="badge b-${c.cls}" style="margin-left:4px"><span class="dot"></span>${c.label}</span>`
+        + (r.sys != null && r.dia != null ? ` <span style="color:var(--muted)">· 🩸 ${r.sys}/${r.dia} mmHg</span>` : '');
+    } else {
+      type = '💊 Medicine';
+      detail = esc(r.name||'') + (r.dose?` · ${esc(r.dose)}`:'');
+    }
+    return `<tr>
+      <td style="white-space:nowrap">${niceDate(r.date)}</td>
+      <td style="white-space:nowrap">${niceTime(r.time)}</td>
+      <td style="white-space:nowrap">${type}</td>
+      <td>${detail}</td>
+      <td>${esc(r.note||'')}</td>
+      <td><div class="acts">
+        <button class="iconbtn" title="Edit" onclick="openEdit('${r.id}')">✏️</button>
+        <button class="iconbtn del" title="Delete" onclick="quickDelete('${r.id}')">🗑️</button>
+      </div></td></tr>`;
+  }).join('');
+}
+
+function quickDelete(id){
+  if(!confirm('Delete this record?')) return;
+  records = records.filter(r => r.id !== id); saveRecords();
+  renderRecords(); toast('Deleted');
+}
+
+/* =====================================================================
+   EDIT MODAL
+   ===================================================================== */
 function openEdit(id){
-  const r = records.find(x=>x.id===id); if(!r) return;
-  $('e_id').value=r.id; $('e_date').value=r.date; $('e_time').value=r.time;
-  $('e_pulseFields').style.display = r.type==='pulse'?'block':'none'; $('e_medFields').style.display = r.type==='med'?'block':'none';
-  $('e_bpm').value=r.bpm||''; $('e_sys').value=r.sys||''; $('e_dia').value=r.dia||''; $('e_name').value=r.name||''; $('e_dose').value=r.dose||''; $('e_note').value=r.note||'';
+  const r = records.find(x => x.id === id); if(!r) return;
+  $('e_id').value = r.id;
+  $('e_date').value = r.date; $('e_time').value = r.time;
+  $('editTitle').textContent = r.type === 'pulse' ? 'Edit pulse reading' : 'Edit medicine';
+  $('e_pulseFields').style.display = r.type === 'pulse' ? 'block' : 'none';
+  $('e_medFields').style.display   = r.type === 'med'   ? 'block' : 'none';
+  $('e_bpm').value = r.bpm || '';
+  $('e_sys').value = r.sys != null ? r.sys : ''; $('e_dia').value = r.dia != null ? r.dia : '';
+  $('e_name').value = r.name || ''; $('e_dose').value = r.dose || '';
+  $('e_note').value = r.note || '';
   $('overlay').classList.add('open');
 }
 function closeModal(){ $('overlay').classList.remove('open'); }
 function saveEdit(){
-  const r = records.find(x=>x.id===$('e_id').value); if(!r) return;
-  r.date=$('e_date').value; r.time=$('e_time').value; r.ts=toTs(r.date,r.time); r.note=$('e_note').value.trim();
-  if(r.type==='pulse'){ r.bpm=parseInt($('e_bpm').value,10); r.sys=$('e_sys').value?parseInt($('e_sys').value,10):null; r.dia=$('e_dia').value?parseInt($('e_dia').value,10):null; }
-  else { r.name=$('e_name').value.trim(); r.dose=$('e_dose').value.trim(); }
-  saveRecords(); closeModal(); refreshCurrentView(); toast('Updated');
+  const r = records.find(x => x.id === $('e_id').value); if(!r) return;
+  if(!$('e_date').value || !$('e_time').value){ toast('Date and time are required'); return; }
+  r.date = $('e_date').value; r.time = $('e_time').value; r.ts = toTs(r.date, r.time);
+  r.note = $('e_note').value.trim();
+  if(r.type === 'pulse'){
+    const b = parseInt($('e_bpm').value,10);
+    if(!b || b<20 || b>300){ toast('Enter a pulse between 20 and 300'); return; }
+    r.bpm = b;
+    const sysRaw = $('e_sys').value, diaRaw = $('e_dia').value;
+    if(sysRaw || diaRaw){
+      const sys = parseInt(sysRaw,10), dia = parseInt(diaRaw,10);
+      if(!sys || !dia){ toast('Enter both systolic and diastolic, or leave both blank'); return; }
+      if(sys < 50 || sys > 260 || dia < 30 || dia > 160){ toast('Check the BP numbers entered'); return; }
+      if(sys <= dia){ toast('Systolic should be higher than diastolic'); return; }
+      r.sys = sys; r.dia = dia;
+    } else { r.sys = null; r.dia = null; }
+  } else {
+    if(!$('e_name').value.trim()){ toast('Medicine name is required'); return; }
+    r.name = $('e_name').value.trim(); r.dose = $('e_dose').value.trim();
+  }
+  saveRecords(); closeModal(); renderRecords(); renderDashboard(); toast('Saved ✓');
 }
-function deleteFromModal(){ records=records.filter(r=>r.id!==$('e_id').value); saveRecords(); closeModal(); refreshCurrentView(); toast('Deleted'); }
+function deleteFromModal(){
+  const id = $('e_id').value;
+  if(!confirm('Delete this record?')) return;
+  records = records.filter(r => r.id !== id); saveRecords();
+  closeModal(); renderRecords(); renderDashboard(); toast('Deleted');
+}
+
+/* =====================================================================
+   BACKUP — CSV / JSON / import / clear
+   ===================================================================== */
+function download(filename, text, mime){
+  const blob = new Blob([text], {type:mime});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename; document.body.appendChild(a); a.click();
+  document.body.removeChild(a); setTimeout(()=>URL.revokeObjectURL(url), 1000);
+}
+function csvCell(s){ s = String(s==null?'':s); return /[",\n]/.test(s) ? '"'+s.replace(/"/g,'""')+'"' : s; }
 
 function exportCSV(){
-  if(!records.length){ toast('Empty storage logs'); return; }
-  const csv = [['Date','Time','Type','Heart Rate (BPM)','Systolic Blood Pressure','Diastolic Blood Pressure','Medication Label','Dose Configuration','Doctor Evaluation Notes']]
-    .concat(records.slice().sort((a,b)=>a.ts-b.ts).map(r => [r.date, r.time, r.type==='pulse'?'Vitals Log':'Prescription', r.bpm||'', r.sys||'', r.dia||'', r.name||'', r.dose||'', r.note||'']))
-    .map(row => row.map(s => { s=String(s==null?'':s); return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s; }).join(',')).join('\n');
-  const blob = new Blob([csv], {type:'text/csv'}); const u = URL.createObjectURL(blob); const a = document.createElement('a');
-  a.href=u; a.download=`vitals_sheet_${todayStr()}.csv`; document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  if(!records.length){ toast('No data to export'); return; }
+  const head = ['Date','Time','Type','Medicine / BPM','Dose','Systolic','Diastolic','Status','Notes'];
+  const rows = records.slice().sort((a,b)=>a.ts-b.ts).map(r => {
+    if(r.type === 'pulse'){
+      const c = classify(r.bpm);
+      return [r.date, r.time, 'Pulse', r.bpm, '', r.sys ?? '', r.dia ?? '', c.label, r.note||''];
+    }
+    return [r.date, r.time, 'Medicine', r.name||'', r.dose||'', '', '', '', r.note||''];
+  });
+  const csv = [head, ...rows].map(row => row.map(csvCell).join(',')).join('\n');
+  download('heart-care-' + todayStr() + '.csv', csv, 'text/csv');
+  toast('CSV exported ✓');
 }
+
 function exportJSON(){
-  const blob = new Blob([JSON.stringify({app:'HeartCare', records, settings},null,2)], {type:'application/json'});
-  const u = URL.createObjectURL(blob); const a = document.createElement('a'); a.href=u; a.download=`backup_${todayStr()}.json`; a.click();
+  const payload = { app:'HeartCare', version:1, exportedAt:new Date().toISOString(), settings, records };
+  download('heart-care-backup-' + todayStr() + '.json', JSON.stringify(payload, null, 2), 'application/json');
+  toast('Backup saved ✓');
 }
+
 function importJSON(ev){
-  const f = ev.target.files[0]; if(!f) return; const r = new FileReader();
-  r.onload = () => {
+  const file = ev.target.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
     try{
-      const d = JSON.parse(r.result); if(d.records) records=d.records; if(d.settings) settings=Object.assign({},DEFAULT_SETTINGS,d.settings);
-      saveRecords(); saveSettingsStore(); refreshCurrentView(); toast('System Restored Complete ✓');
-    }catch(e){ toast('Incompatible database structure'); }
-  }; r.readAsText(f);
+      const d = JSON.parse(reader.result);
+      const recs = d.records || d;
+      if(!Array.isArray(recs)) throw new Error('bad');
+      if(!confirm('Restore this backup? It will replace all current cloud records.')) { ev.target.value=''; return; }
+      records = recs.map(r => ({...r, id:r.id||uid(), ts:r.ts||toTs(r.date,r.time)}));
+      if(d.settings) settings = Object.assign({}, DEFAULT_SETTINGS, d.settings);
+      saveRecords(); saveSettingsStore();
+      refreshMedDatalist(); renderDashboard(); renderRecords();
+      toast('Backup restored ✓');
+    }catch(e){ toast('Could not read that file'); }
+    ev.target.value = '';
+  };
+  reader.readAsText(file);
 }
-function clearAll(){ if(confirm('Wipe absolute cloud database matrix logs? This is catastrophic.')) { records=[]; saveRecords(); refreshCurrentView(); toast('Wiped'); } }
 
+function clearAll(){
+  if(!records.length){ toast('No records to clear'); return; }
+  if(!confirm('Delete ALL cloud records? Your settings are kept. This cannot be undone.')) return;
+  if(!confirm('Are you sure? This permanently removes every reading and medicine entry.')) return;
+  records = []; saveRecords(); renderDashboard(); renderRecords(); toast('All records cleared');
+}
+
+/* =====================================================================
+   SETTINGS
+   ===================================================================== */
 function renderSettings(){
-  $('set_name').value=settings.patientName; $('set_low').value=settings.lowerLimit; $('set_high').value=settings.upperLimit; $('set_reminder').value=settings.reminderText;
-  $('medChips').innerHTML = settings.medList.map((m,i)=>`<span class="chip">${esc(m)}<button onclick="removeMedName(${i})">×</button></span>`).join('');
+  $('set_name').value = settings.patientName || '';
+  $('set_low').value = settings.lowerLimit;
+  $('set_high').value = settings.upperLimit;
+  $('set_sys_low').value = settings.bpSysLow;
+  $('set_sys_high').value = settings.bpSysHigh;
+  $('set_dia_low').value = settings.bpDiaLow;
+  $('set_dia_high').value = settings.bpDiaHigh;
+  $('set_reminder').value = settings.reminderText || '';
+  renderMedChips();
+  if('Notification' in window && Notification.permission !== 'granted'){
+    $('notifBtn').style.display = 'inline-flex';
+  } else { $('notifBtn').style.display = 'none'; }
 }
-function addMedName(){ const v = $('newMed').value.trim(); if(v){ settings.medList.push(v); $('newMed').value=''; saveSettingsStore(); renderSettings(); refreshMedDatalist(); } }
-function removeMedName(i){ settings.medList.splice(i,1); saveSettingsStore(); renderSettings(); refreshMedDatalist(); }
-function refreshMedDatalist(){ $('medList').innerHTML = settings.medList.map(m=>`<option value="${esc(m)}">`).join(''); }
+
+function renderMedChips(){
+  $('medChips').innerHTML = settings.medList.map((m,i) =>
+    `<span class="chip">${esc(m)}<button title="Remove" onclick="removeMedName(${i})">×</button></span>`).join('')
+    || '<span class="note">No medicines added yet.</span>';
+}
+function addMedName(){
+  const v = $('newMed').value.trim(); if(!v) return;
+  if(!settings.medList.some(x => x.toLowerCase() === v.toLowerCase())) settings.medList.push(v);
+  $('newMed').value = ''; saveSettingsStore(); renderMedChips(); refreshMedDatalist();
+}
+function removeMedName(i){ settings.medList.splice(i,1); saveSettingsStore(); renderMedChips(); refreshMedDatalist(); }
+
+function refreshMedDatalist(){
+  $('medList').innerHTML = settings.medList.map(m => `<option value="${esc(m)}">`).join('');
+}
+
 function saveSettings(){
-  settings.patientName=$('set_name').value.trim(); settings.lowerLimit=parseInt($('set_low').value,10); settings.upperLimit=parseInt($('set_high').value,10); settings.reminderText=$('set_reminder').value.trim();
-  saveSettingsStore(); renderDashboard(); toast('Settings Matrix Locked ✓');
+  const lo = parseInt($('set_low').value,10), hi = parseInt($('set_high').value,10);
+  if(!lo || !hi || lo<20 || hi>300 || lo>=hi){ toast('Check the pulse limits (lower must be below upper)'); return; }
+  const sLo = parseInt($('set_sys_low').value,10), sHi = parseInt($('set_sys_high').value,10);
+  const dLo = parseInt($('set_dia_low').value,10), dHi = parseInt($('set_dia_high').value,10);
+  if(!sLo || !sHi || sLo>=sHi || !dLo || !dHi || dLo>=dHi){ toast('Check the BP limits (lower must be below upper)'); return; }
+  settings.patientName = $('set_name').value.trim();
+  settings.lowerLimit = lo; settings.upperLimit = hi;
+  settings.bpSysLow = sLo; settings.bpSysHigh = sHi;
+  settings.bpDiaLow = dLo; settings.bpDiaHigh = dHi;
+  settings.reminderText = $('set_reminder').value.trim();
+  saveSettingsStore();
+  renderDashboard(); toast('Settings saved ✓');
 }
 
-let toastTimer; function toast(m){ const t = $('toast'); t.textContent=m; t.classList.add('show'); clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove('show'),2200); }
-
-function drawCanvasFallback(canvas, data, range){
-  const ctx = canvas.getContext('2d'); ctx.fillStyle='#666'; ctx.fillText('Fallback rendering active. Connect to web access once for visual extensions.', 20, 50);
+function enableNotif(){
+  if(!('Notification' in window)) return;
+  Notification.requestPermission().then(p => {
+    if(p === 'granted'){
+      new Notification('Heart Care', {body: settings.reminderText || 'Reminder set. Please also set a phone alarm.'});
+      $('notifBtn').style.display = 'none';
+    } else { toast('Notifications not allowed'); }
+  });
 }
 
-// Global ChartInstance reference context tracking hooks
-let chartInstance = null;
+/* =====================================================================
+   TOAST + INSTALL PROMPT + INIT
+   ===================================================================== */
+let toastTimer;
+function toast(msg){
+  const t = $('toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastTimer); toastTimer = setTimeout(()=>t.classList.remove('show'), 2200);
+}
 
-function bindSeg(id, getP, setP, call){ $(id).querySelectorAll('button').forEach(b => { b.onclick = () => { $(id).querySelectorAll('button').forEach(x=>x.classList.remove('on')); b.classList.add('on'); setP(b.dataset.p); call(); }; }); }
+let deferredPrompt = null;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault(); deferredPrompt = e;
+  const b = $('installBtn'); b.classList.remove('hide');
+  b.onclick = async () => { b.classList.add('hide'); deferredPrompt.prompt(); await deferredPrompt.userChoice; deferredPrompt = null; };
+});
+
+$('overlay').addEventListener('click', e => { if(e.target.id === 'overlay') closeModal(); });
+
+let rT; window.addEventListener('resize', () => {
+  clearTimeout(rT); rT = setTimeout(() => { if($('view-trends').classList.contains('active')) renderTrends(); }, 200);
+});
 
 function init(){
-  load(); refreshMedDatalist();
-  $('p_date').value = $('m_date').value = todayStr(); $('p_time').value = $('m_time').value = nowTime();
-  bindSeg('chartSeg', ()=>chartPeriod, p=>chartPeriod=p, renderTrends); bindSeg('tableSeg', ()=>tablePeriod, p=>tablePeriod=p, renderRecords);
-  renderDashboard(); initFirebaseSync();
+  load(); // 1. Instant local storage data fallback load
+  refreshMedDatalist();
+  $('p_date').value = $('m_date').value = todayStr();
+  $('p_time').value = $('m_time').value = nowTime();
+  bindSeg('chartSeg', ()=>chartPeriod, p=>chartPeriod=p, renderTrends);
+  bindSeg('tableSeg', ()=>tablePeriod, p=>tablePeriod=p, renderRecords);
+  renderDashboard();
+
+  initFirebaseSync(); // 2. Connect live sync to automatically keep both phones updated
 }
 init();
 </script>
