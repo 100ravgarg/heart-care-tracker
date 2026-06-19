@@ -3,35 +3,55 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" />
-<meta name="theme-color" content="#1f2a2e" />
+<meta name="theme-color" content="#256b66" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 <meta name="apple-mobile-web-app-title" content="Heart Care" />
-<meta name="description" content="Personal heart-rate and medication tracker. Works offline." />
-<title>Heart Care — Pulse &amp; Medicine Tracker</title>
+<meta name="description" content="Personal blood-pressure, pulse and medication tracker. Works offline." />
+<title>Heart Care</title>
 
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%231f2a2e'/%3E%3Cpath d='M50 75C32 62 22 52 22 39c0-8 6-14 14-14 6 0 11 4 14 9 3-5 8-9 14-9 8 0 14 6 14 14 0 13-10 23-28 36z' fill='%23ffffff'/%3E%3C/svg%3E" />
-<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%231f2a2e'/%3E%3Cpath d='M50 75C32 62 22 52 22 39c0-8 6-14 14-14 6 0 11 4 14 9 3-5 8-9 14-9 8 0 14 6 14 14 0 13-10 23-28 36z' fill='%23ffffff'/%3E%3C/svg%3E" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%23256b66'/%3E%3Cpath d='M50 78C30 64 18 53 18 40c0-9 7-16 16-16 6 0 11 3 16 9 5-6 10-9 16-9 9 0 16 7 16 16 0 13-12 24-32 38z' fill='white'/%3E%3C/svg%3E" />
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%23256b66'/%3E%3Cpath d='M50 78C30 64 18 53 18 40c0-9 7-16 16-16 6 0 11 3 16 9 5-6 10-9 16-9 9 0 16 7 16 16 0 13-12 24-32 38z' fill='white'/%3E%3C/svg%3E" />
+<link rel="manifest" href="data:application/manifest+json,%7B%22name%22%3A%22Heart%20Care%22%2C%22short_name%22%3A%22Heart%20Care%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%23f4f5f6%22%2C%22theme_color%22%3A%22%23256b66%22%7D" />
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" onerror="window.__chartjsFailed=true"></script>
+<!-- Firebase (Realtime Database) for sharing one logbook between two phones -->
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
 
 <style>
+  /* ============================================================
+     DESIGN TOKENS — restrained, "clinical-premium" palette.
+     Mostly neutral; one quiet accent; desaturated status colours.
+     ============================================================ */
   :root{
-    --bg:#f8f9fa;
+    --bg:#f4f5f6;
     --card:#ffffff;
-    --ink:#1f2a2e;
-    --muted:#5f6b70;
-    --line:#e5e9eb;
-    --teal:#1a7d79;
-    --normal:#2d8a5e;
-    --high:#c23d4f;
-    --low:#3b6ea0;
-    --med:#b37d2e;
-    --shadow:0 2px 8px rgba(31,42,46,.08);
-    --shadow-lg:0 8px 28px rgba(31,42,46,.12);
+    --ink:#1f2733;          /* primary text */
+    --ink-2:#3b4654;        /* secondary headings */
+    --muted:#76828d;        /* labels / captions */
+    --faint:#9aa4ad;
+    --line:#e8ebed;         /* hairlines */
+    --line-2:#dfe3e6;
+
+    --accent:#256b66;       /* single quiet accent (deep muted teal) */
+    --accent-dark:#1b524e;
+    --accent-soft:#eef3f2;
+
+    /* status — subtle but clearly coloured */
+    --ok:#2f8a63;
+    --hi:#c24a44;
+    --lo:#4f78b4;
+
+    /* chart series — subtle, with pulse in red */
+    --sys:#3a6ea5;          /* systolic — medium blue */
+    --dia:#8fb0d0;          /* diastolic — light blue */
+    --pulse:#ca4a55;        /* pulse — muted red */
+    --med:#a08a6a;          /* medicine markers — taupe */
+
+    --shadow:0 1px 2px rgba(18,30,42,.04), 0 4px 18px rgba(18,30,42,.05);
+    --shadow-lg:0 12px 40px rgba(18,30,42,.16);
     --r:16px;
+    --r-sm:11px;
     --tap:52px;
   }
 
@@ -39,103 +59,195 @@
   html,body{margin:0;padding:0}
   body{
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-    background:var(--bg);
-    color:var(--ink);
-    font-size:16px;
-    line-height:1.5;
-    -webkit-font-smoothing:antialiased;
-    padding-bottom:calc(72px + env(safe-area-inset-bottom));
+    background:var(--bg);color:var(--ink);
+    font-size:16px;line-height:1.5;-webkit-font-smoothing:antialiased;
+    padding-bottom:calc(74px + env(safe-area-inset-bottom));
   }
-  .num{font-variant-numeric:tabular-nums}
+  .num{font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1}
+  .muted{color:var(--muted)}
 
   .wrap{max-width:540px;margin:0 auto}
 
+  /* ---------- App bar (calm, light) ---------- */
   header.appbar{
-    position:sticky;top:0;z-index:30;
-    background:#1f2a2e;color:#fff;
-    padding:calc(env(safe-area-inset-top) + 16px) 20px 14px;
-    box-shadow:var(--shadow);
+    position:sticky;top:0;z-index:30;background:var(--card);
+    border-bottom:1px solid var(--line);
+    padding:calc(env(safe-area-inset-top) + 12px) 18px 12px;
   }
-  .appbar .wrap{display:flex;align-items:center;gap:14px}
-  .appbar .logo{
-    width:48px;height:48px;border-radius:14px;background:#ffffff1a;
-    display:grid;place-items:center;font-size:26px
-  }
-  .appbar h1{font-size:21px;margin:0;font-weight:700;letter-spacing:-0.4px}
+  .appbar .wrap{display:flex;align-items:center;gap:11px}
+  .appbar .mark{width:34px;height:34px;flex:0 0 auto;color:var(--pulse)}
+  .appbar h1{font-size:17px;margin:0;font-weight:700;letter-spacing:-.2px;color:var(--ink)}
+  .appbar .sub{font-size:12px;color:var(--muted);margin-top:1px}
+  .appbar .syncbadge{margin-left:auto;font-size:11px;font-weight:600;color:var(--muted);
+    display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border:1px solid var(--line-2);border-radius:999px}
+  .appbar .syncbadge .d{width:7px;height:7px;border-radius:50%;background:var(--faint)}
 
-  .disclaimer{
-    background:#f1f3f4;border-bottom:1px solid #e2e5e8;color:#56646a;
-    font-size:13px;text-align:center;padding:9px 20px;line-height:1.4
-  }
+  .disclaimer{background:transparent;color:var(--faint);font-size:11.5px;text-align:center;
+    padding:8px 18px;line-height:1.4;border-bottom:1px solid var(--line)}
 
-  main{padding:20px 18px 12px}
+  main{padding:18px 14px 8px}
 
-  .card{
-    background:var(--card);border-radius:var(--r);box-shadow:var(--shadow);
-    padding:20px;margin-bottom:18px;border:1px solid var(--line)
-  }
-  .card-title{
-    display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;
-    letter-spacing:0.5px;text-transform:uppercase;color:var(--muted);margin:0 0 14px
-  }
+  /* ---------- Cards ---------- */
+  .card{background:var(--card);border-radius:var(--r);box-shadow:var(--shadow);
+    padding:18px;margin:0 0 14px;border:1px solid var(--line)}
+  .ct{font-size:11.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;
+    color:var(--muted);margin:0 0 14px}
 
-  .monitor{
-    position:relative;text-align:center;padding:28px 20px 24px;
-    background:linear-gradient(145deg,#1f2a2e,#2c3e3c);color:#fff;border-radius:var(--r);overflow:hidden
-  }
-  .monitor .bpm{font-size:68px;font-weight:700;line-height:1;letter-spacing:-3px;margin:8px 0 4px}
-  .monitor .bpm small{font-size:19px;opacity:0.75}
-  .monitor .when{font-size:14px;opacity:0.85;margin-top:6px}
+  /* ---------- Summary (latest readings) ---------- */
+  .summary .eyebrow{font-size:11.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin-bottom:14px}
+  .metrics{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .metric{padding:2px 2px}
+  .metric + .metric{border-left:1px solid var(--line);padding-left:18px}
+  .metric .k{font-size:12px;color:var(--muted);margin-bottom:6px}
+  .metric .v{font-size:34px;font-weight:700;line-height:1;letter-spacing:-1px;color:var(--ink)}
+  .metric .v .u{font-size:14px;font-weight:600;color:var(--faint);letter-spacing:0;margin-left:3px}
+  .metric .s{font-size:12px;color:var(--muted);margin-top:8px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+  .sdot{width:8px;height:8px;border-radius:50%;background:var(--faint);flex:0 0 auto}
 
-  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
-  .stat{background:#f8f9fa;border-radius:12px;padding:16px 8px;text-align:center}
-  .stat .v{font-size:26px;font-weight:700}
+  /* ---------- Stat grid ---------- */
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line);
+    border:1px solid var(--line);border-radius:var(--r-sm);overflow:hidden}
+  .stat{background:var(--card);padding:14px 8px;text-align:center}
+  .stat .v{font-size:22px;font-weight:700;line-height:1;color:var(--ink)}
+  .stat .k{font-size:11px;color:var(--muted);margin-top:5px}
+  .subline{font-size:13px;color:var(--muted);margin-top:12px;text-align:center}
+  .subline b{color:var(--ink-2);font-weight:700}
 
-  .row{display:flex;align-items:center;gap:14px;padding:14px 0;border-bottom:1px solid var(--line)}
+  /* ---------- Reading / med rows ---------- */
+  .row{display:flex;align-items:flex-start;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}
   .row:last-child{border-bottom:none}
-  .row .ico{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;font-size:22px;background:#f1f3f4}
-  .row .main{flex:1}
-  .row .main .t1{font-weight:600;font-size:16px}
-  .row .main .t2{font-size:13.5px;color:var(--muted)}
+  .row .mk{width:4px;align-self:stretch;border-radius:3px;background:var(--line-2);flex:0 0 auto;min-height:34px}
+  .row .main{flex:1;min-width:0}
+  .row .main .t1{font-weight:650;font-size:15px;color:var(--ink)}
+  .row .main .t2{font-size:13px;color:var(--muted);margin-top:2px}
+  .row .time{font-size:12.5px;color:var(--muted);font-weight:600;white-space:nowrap;padding-top:2px}
+  .empty{color:var(--faint);font-size:14px;text-align:center;padding:16px 6px}
 
-  .badge{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;font-weight:600;padding:4px 10px;border-radius:999px}
-  .b-normal{background:#e8f0eb;color:var(--normal)}
-  .b-high{background:#f9e9eb;color:var(--high)}
-  .b-low{background:#e9eff7;color:var(--low)}
+  /* ---------- Status badges (quiet) ---------- */
+  .badge{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:700;
+    padding:2px 8px;border-radius:6px;white-space:nowrap;border:1px solid transparent}
+  .badge .dot{width:6px;height:6px;border-radius:50%}
+  .b-normal{color:var(--ok);background:#eef5f1;border-color:#dcebe3} .b-normal .dot{background:var(--ok)}
+  .b-high{color:var(--hi);background:#f8eeed;border-color:#efd9d6} .b-high .dot{background:var(--hi)}
+  .b-low{color:var(--lo);background:#eef2f8;border-color:#dde5f0} .b-low .dot{background:var(--lo)}
 
-  label.field{display:block;margin-bottom:16px}
-  label.field>span{display:block;font-size:13.5px;font-weight:600;color:var(--muted);margin-bottom:6px}
-  input,select,textarea{
-    width:100%;font:inherit;background:#fff;border:1.5px solid var(--line);
-    border-radius:12px;padding:14px 16px;min-height:var(--tap)
-  }
-  input:focus,select:focus,textarea:focus{border-color:var(--teal);box-shadow:0 0 0 4px rgba(26,125,121,0.12)}
+  /* ---------- Forms ---------- */
+  label.field{display:block;margin:0 0 14px}
+  label.field>span{display:block;font-size:13px;font-weight:600;color:var(--ink-2);margin-bottom:7px}
+  input,select,textarea{width:100%;font:inherit;color:var(--ink);background:#fff;
+    border:1px solid var(--line-2);border-radius:var(--r-sm);padding:13px;min-height:var(--tap)}
+  textarea{min-height:64px;resize:vertical}
+  input::placeholder,textarea::placeholder{color:var(--faint)}
+  input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(37,107,102,.12)}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .hint{font-size:12.5px;color:var(--muted);margin:-6px 0 14px}
 
-  .btn{
-    display:inline-flex;align-items:center;justify-content:center;gap:8px;
-    width:100%;min-height:var(--tap);border:none;border-radius:12px;
-    font:inherit;font-weight:600;font-size:16px;cursor:pointer
-  }
-  .btn-primary{background:var(--teal);color:#fff}
-  .btn-ghost{background:#fff;border:1.5px solid var(--line);color:var(--ink)}
-  .btn-danger{background:#fff2f2;color:var(--high);border:1.5px solid #f8d0d0}
+  /* ---------- Buttons ---------- */
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;width:100%;
+    min-height:var(--tap);border:1px solid transparent;border-radius:var(--r-sm);
+    font:inherit;font-weight:650;font-size:15.5px;cursor:pointer;padding:0 16px;
+    transition:transform .05s ease, background .15s ease}
+  .btn:active{transform:scale(.99)}
+  .btn-primary{background:var(--accent);color:#fff}
+  .btn-primary:active{background:var(--accent-dark)}
+  .btn-soft{background:var(--accent-soft);color:var(--accent-dark);border-color:#dde8e6}
+  .btn-ghost{background:#fff;color:var(--ink-2);border-color:var(--line-2)}
+  .btn-danger{background:#fff;color:var(--hi);border-color:#ecd2cf}
+  .btn-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .btn-sm{min-height:44px;font-size:14px;width:auto;padding:0 16px}
 
-  .seg{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
-  .seg button{
-    flex:1;min-height:44px;border-radius:999px;border:1.5px solid var(--line);
-    background:#fff;color:var(--muted);font-weight:600
-  }
-  .seg button.on{background:var(--teal);color:#fff;border-color:var(--teal)}
+  /* ---------- Segmented period filter ---------- */
+  .seg{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}
+  .seg button{flex:1 1 auto;min-width:70px;min-height:40px;border-radius:9px;border:1px solid var(--line-2);
+    background:#fff;color:var(--muted);font:inherit;font-weight:600;font-size:13px;cursor:pointer}
+  .seg button.on{background:var(--accent);border-color:var(--accent);color:#fff}
 
-  .chartbox{position:relative;width:100%;height:380px;margin:12px 0}
-  .chartbox canvas{width:100%!important;height:100%!important;display:block}
-  .legend{display:flex;flex-wrap:wrap;gap:16px;justify-content:center;margin:16px 0 8px;font-size:13px;color:var(--muted)}
+  /* ---------- Chart ---------- */
+  .chartbox{position:relative;width:100%;height:300px}
+  .chartbox svg{display:block;width:100%;height:100%}
+  #chartTip{position:absolute;display:none;z-index:5;pointer-events:none;
+    background:var(--ink);color:#fff;font-size:12px;line-height:1.45;padding:8px 11px;border-radius:9px;
+    box-shadow:var(--shadow-lg);max-width:200px}
+  #chartTip b{font-weight:700}
+  .legend{display:flex;flex-wrap:wrap;gap:7px 16px;justify-content:center;margin-top:14px;font-size:12px;color:var(--muted)}
+  .legend span{display:inline-flex;align-items:center;gap:7px}
+  .legend i{display:inline-block}
+  .sw-line{width:16px;height:2.5px;border-radius:2px}
+  .sw-band{width:16px;height:11px;border-radius:3px;background:rgba(63,138,106,.16);border:1px solid rgba(63,138,106,.3)}
+  .sw-med{width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent;border-bottom:10px solid var(--med)}
 
+  /* ---------- Key/value analysis rows ---------- */
+  .kv{display:flex;justify-content:space-between;gap:12px;padding:11px 0;border-bottom:1px solid var(--line);font-size:14px}
+  .kv:last-child{border-bottom:none}
+  .kv .k{color:var(--muted)}
+  .kv .v{font-weight:650;text-align:right}
+  .kv .v small{color:var(--muted);font-weight:500}
+
+  /* ---------- Table ---------- */
+  .tablewrap{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:0 -6px}
+  table{border-collapse:collapse;width:100%;font-size:13px;min-width:480px}
+  th,td{text-align:left;padding:11px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:700;white-space:nowrap}
+  td .acts{display:flex;gap:6px}
+  td .iconbtn{border:1px solid var(--line-2);background:#fff;border-radius:8px;width:34px;height:34px;cursor:pointer;
+    display:grid;place-items:center;color:var(--muted)}
+  td .iconbtn svg{width:16px;height:16px}
+  td .iconbtn.del{color:var(--hi);border-color:#ecd2cf}
+
+  /* ---------- Timeline ---------- */
+  .timeline{position:relative;margin:2px 0 0}
+  .tl{position:relative;padding:0 0 16px 24px;border-left:2px solid var(--line)}
+  .tl:last-child{border-left-color:transparent;padding-bottom:0}
+  .tl .node{position:absolute;left:-8px;top:2px;width:14px;height:14px;border-radius:50%;border:3px solid var(--card);box-shadow:0 0 0 1.5px var(--line-2)}
+  .tl .tt{font-size:12.5px;color:var(--muted);font-weight:600}
+  .tl .td{font-weight:650;font-size:14.5px;margin-top:2px}
+  .tl .nt{font-size:12.5px;color:var(--muted);margin-top:2px}
+
+  /* ---------- Chips ---------- */
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin:2px 0 12px}
+  .chip{display:inline-flex;align-items:center;gap:7px;background:var(--accent-soft);color:var(--accent-dark);
+    border:1px solid #dde8e6;border-radius:999px;padding:7px 9px 7px 13px;font-size:14px;font-weight:600}
+  .chip button{border:none;background:rgba(27,82,78,.1);color:var(--accent-dark);width:22px;height:22px;border-radius:50%;cursor:pointer;font-size:15px;line-height:1}
+
+  .note{font-size:13px;color:var(--muted);line-height:1.55}
+  .note b{color:var(--ink-2)}
+  .steps{margin:6px 0 0;padding-left:20px;font-size:13.5px;line-height:1.7;color:var(--ink-2)}
+
+  /* ---------- Bottom navigation (SVG line icons) ---------- */
+  nav.tabbar{position:fixed;left:0;right:0;bottom:0;z-index:40;background:rgba(255,255,255,.97);
+    backdrop-filter:blur(10px);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
+  nav.tabbar .wrap{display:flex}
+  nav.tabbar button{flex:1;background:none;border:none;cursor:pointer;color:var(--faint);
+    padding:9px 2px 7px;font:inherit;font-size:10.5px;font-weight:600;
+    display:flex;flex-direction:column;align-items:center;gap:4px}
+  nav.tabbar button svg{width:23px;height:23px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+  nav.tabbar button.on{color:var(--accent)}
+
+  /* ---------- Views / modal / toast ---------- */
+  .view{display:none}
+  .view.active{display:block;animation:fade .2s ease}
+  @keyframes fade{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
+  @media (prefers-reduced-motion: reduce){.view.active{animation:none}}
+  .view-head{font-size:22px;font-weight:700;letter-spacing:-.4px;margin:2px 4px 16px;color:var(--ink)}
+
+  .overlay{position:fixed;inset:0;z-index:60;background:rgba(20,30,40,.4);display:none;align-items:flex-end;justify-content:center}
+  .overlay.open{display:flex}
+  .modal{background:#fff;border-radius:20px 20px 0 0;width:100%;max-width:540px;
+    padding:20px 18px calc(20px + env(safe-area-inset-bottom));box-shadow:var(--shadow-lg);max-height:90vh;overflow:auto}
+  .modal h3{margin:0 0 16px;font-size:18px;font-weight:700}
+  @media(min-width:560px){.overlay{align-items:center}.modal{border-radius:20px;margin:16px}}
+
+  .toast{position:fixed;left:50%;bottom:92px;transform:translateX(-50%) translateY(16px);
+    background:var(--ink);color:#fff;padding:11px 18px;border-radius:999px;font-size:14px;font-weight:600;
+    opacity:0;pointer-events:none;transition:.25s;z-index:80;box-shadow:var(--shadow-lg)}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  .hide{display:none!important}
+
+  /* ---------- Print ---------- */
   @media print{
-    body{background:#fff;padding:0!important}
-    header, nav, .disclaimer, .seg, .btn, .card-title .ico {display:none!important}
-    .card{box-shadow:none;border:1px solid #ddd;break-inside:avoid;margin:12px 0}
-    .chartbox{height:420px!important}
+    body{background:#fff!important;padding:0!important}
+    header.appbar,nav.tabbar,.disclaimer,.seg,.btn,.btn-row,#chartExtra{display:none!important}
+    .card{box-shadow:none!important;border:1px solid #ccc!important;break-inside:avoid}
   }
 </style>
 </head>
@@ -143,200 +255,298 @@
 
 <header class="appbar">
   <div class="wrap">
-    <div class="logo">❤️</div>
+    <svg class="mark" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 20.5C6.8 16.8 4 13.9 4 10.4 4 7.9 5.9 6 8.3 6c1.5 0 2.9.8 3.7 2 .8-1.2 2.2-2 3.7-2C18.1 6 20 7.9 20 10.4c0 3.5-2.8 6.4-8 10.1z"/></svg>
     <div>
       <h1 id="patientTitle">Heart Care</h1>
-      <div class="sub" id="patientSub" style="font-size:13.5px;opacity:0.85">Clinical Pulse &amp; Medicine Tracker</div>
+      <div class="sub">Blood pressure &amp; pulse log</div>
     </div>
+    <div class="syncbadge" id="syncBadge"><span class="d"></span>Local</div>
   </div>
 </header>
-
-<div class="disclaimer">
-  ⚕️ Personal tracking tool — Not a medical device. Always consult your physician.
-</div>
+<div class="disclaimer">Personal tracking only — not a medical device or diagnosis. Always follow your doctor.</div>
 
 <main class="wrap">
 
+  <!-- ===== HOME ===== -->
   <section class="view active" id="view-home">
     <div id="reminderBanner"></div>
 
-    <div class="card monitor" id="monitorCard">
-      <div style="font-size:13px;letter-spacing:1px;opacity:0.8;margin-bottom:8px">LATEST READING • TODAY</div>
-      <div class="bpm num"><span id="latestBpm">--</span><small>bpm</small></div>
-      <div class="bpline" id="latestBp" style="display:none;font-size:17px;margin:6px 0"></div>
-      <div class="when" id="latestWhen">No reading today</div>
-      <div class="statuspill" id="latestStatus" style="display:none;margin-top:12px"></div>
-    </div>
-
-    <div class="card">
-      <div class="card-title">Today at a Glance</div>
-      <div class="stats">
-        <div class="stat"><div class="v num" id="stMin">--</div><div class="k">Lowest</div></div>
-        <div class="stat"><div class="v num" id="stAvg">--</div><div class="k">Average</div></div>
-        <div class="stat"><div class="v num" id="stMax">--</div><div class="k">Highest</div></div>
+    <div class="card summary">
+      <div class="eyebrow">Latest today</div>
+      <div class="metrics">
+        <div class="metric">
+          <div class="k">Blood pressure</div>
+          <div class="v num" id="hBp">--</div>
+          <div class="s"><span class="sdot" id="hBpDot"></span><span id="hBpStatus">No reading</span></div>
+        </div>
+        <div class="metric">
+          <div class="k">Pulse</div>
+          <div class="v num" id="hPulse">-- <span class="u">bpm</span></div>
+          <div class="s"><span class="sdot" id="hPulseDot"></span><span id="hPulseStatus">No reading</span></div>
+        </div>
       </div>
     </div>
 
     <div class="card">
-      <div class="card-title">Today's Pulse Readings</div>
-      <div id="todayPulse"></div>
+      <div class="ct">Today's pulse</div>
+      <div class="stats">
+        <div class="stat"><div class="v num" id="stLow">--</div><div class="k">Lowest</div></div>
+        <div class="stat"><div class="v num" id="stAvg">--</div><div class="k">Average</div></div>
+        <div class="stat"><div class="v num" id="stHigh">--</div><div class="k">Highest</div></div>
+      </div>
+      <div class="subline" id="bpToday"></div>
     </div>
 
     <div class="card">
-      <div class="card-title">Today's Medicine</div>
+      <div class="ct">Today's readings</div>
+      <div id="todayReadings"></div>
+    </div>
+
+    <div class="card">
+      <div class="ct">Today's medicine</div>
       <div id="todayMeds"></div>
     </div>
 
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-      <button class="btn btn-primary" onclick="openAdd('pulse')">Add Pulse</button>
-      <button class="btn btn-ghost" onclick="openAdd('med')">Add Medicine</button>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="openAdd('reading')">Add reading</button>
+      <button class="btn btn-soft" onclick="openAdd('med')">Add medicine</button>
     </div>
   </section>
 
+  <!-- ===== ADD ===== -->
   <section class="view" id="view-add">
-    <div class="view-head" style="font-size:22px;font-weight:700;margin-bottom:20px">Add New Record</div>
+    <div class="view-head">Add a record</div>
 
-    <div class="card" id="addPulseCard">
-      <div class="card-title">Pulse &amp; Blood Pressure</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+    <div class="card" id="addReadingCard">
+      <div class="ct">Blood pressure &amp; pulse</div>
+      <div class="two">
         <label class="field"><span>Date</span><input type="date" id="p_date"></label>
         <label class="field"><span>Time</span><input type="time" id="p_time"></label>
       </div>
-      <label class="field"><span>Pulse (bpm)</span>
-        <input type="number" id="p_bpm" inputmode="numeric" min="20" max="300" placeholder="e.g. 88"></label>
-      <label class="field"><span>Blood Pressure (optional)</span></label>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
-        <input type="number" id="p_sys" inputmode="numeric" min="50" max="260" placeholder="Systolic">
-        <input type="number" id="p_dia" inputmode="numeric" min="30" max="160" placeholder="Diastolic">
+      <div class="two">
+        <label class="field"><span>Systolic (mmHg)</span><input type="number" id="p_sys" inputmode="numeric" min="50" max="260" placeholder="e.g. 120"></label>
+        <label class="field"><span>Diastolic (mmHg)</span><input type="number" id="p_dia" inputmode="numeric" min="30" max="160" placeholder="e.g. 80"></label>
       </div>
-      <label class="field"><span>Notes</span>
-        <textarea id="p_note" placeholder="Resting, post-exercise, etc."></textarea></label>
-      <button class="btn btn-primary" onclick="savePulse()">Save Pulse Reading</button>
+      <label class="field"><span>Pulse (bpm)</span><input type="number" id="p_bpm" inputmode="numeric" min="20" max="300" placeholder="e.g. 78"></label>
+      <p class="hint">Enter blood pressure, pulse, or both. You can log BP on its own any time.</p>
+      <label class="field"><span>Notes (optional)</span><textarea id="p_note" placeholder="e.g. resting, after walk, felt dizzy"></textarea></label>
+      <button class="btn btn-primary" onclick="saveReading()">Save reading</button>
     </div>
 
     <div class="card" id="addMedCard">
-      <div class="card-title">Medicine Administration</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <div class="ct">Medicine given</div>
+      <div class="two">
         <label class="field"><span>Date</span><input type="date" id="m_date"></label>
-        <label class="field"><span>Time</span><input type="time" id="m_time"></label>
+        <label class="field"><span>Time given</span><input type="time" id="m_time"></label>
       </div>
-      <label class="field"><span>Medicine Name</span>
+      <label class="field"><span>Medicine name</span>
         <input type="text" id="m_name" list="medList" placeholder="e.g. Amlodipine">
         <datalist id="medList"></datalist></label>
-      <label class="field"><span>Dose</span>
-        <input type="text" id="m_dose" placeholder="e.g. 5 mg"></label>
-      <label class="field"><span>Notes</span>
-        <textarea id="m_note" placeholder="Before food, etc."></textarea></label>
-      <button class="btn btn-primary" onclick="saveMed()">Save Medicine Record</button>
+      <label class="field"><span>Dose / quantity</span><input type="text" id="m_dose" placeholder="e.g. 5 mg, 1 tablet"></label>
+      <label class="field"><span>Notes (optional)</span><textarea id="m_note" placeholder="e.g. before breakfast"></textarea></label>
+      <button class="btn btn-primary" onclick="saveMed()">Save medicine</button>
     </div>
   </section>
 
+  <!-- ===== TRENDS ===== -->
   <section class="view" id="view-trends">
-    <div class="view-head" style="font-size:22px;font-weight:700">Trends</div>
+    <div class="view-head">Trends</div>
     <div class="card">
-      <div class="card-title">Pulse, BP and Medicine Timeline</div>
+      <div class="ct">Blood pressure &amp; pulse over time</div>
       <div class="seg" id="chartSeg">
-        <button data-p="today" class="on">Today</button>
-        <button data-p="7days">7 Days</button>
-        <button data-p="month">This Month</button>
-        <button data-p="selmonth">Pick Month</button>
+        <button data-p="7days" class="on">7 days</button>
+        <button data-p="today">Today</button>
+        <button data-p="month">This month</button>
+        <button data-p="selmonth">Pick month</button>
         <button data-p="custom">Custom</button>
       </div>
-      <div id="chartExtra" class="hide" style="margin-bottom:16px"></div>
-      <div class="chartbox"><canvas id="chartCanvas"></canvas></div>
-      <div class="legend" id="chartLegend"></div>
-      <div id="chartMedList" style="margin-top:12px;font-size:13.5px;color:var(--muted)"></div>
-
-      <div style="margin-top:20px;display:flex;gap:12px">
-        <button class="btn btn-ghost" onclick="exportChartExcel()" style="flex:1">Export to Excel</button>
-        <button class="btn btn-ghost" onclick="printChartView()" style="flex:1">Print Report</button>
+      <div id="chartExtra" class="hide" style="margin-bottom:14px"></div>
+      <div class="chartbox" id="chartBox"><div id="chartTip"></div></div>
+      <div class="legend">
+        <span><i class="sw-line" style="background:var(--sys)"></i>Systolic</span>
+        <span><i class="sw-line" style="background:var(--dia)"></i>Diastolic</span>
+        <span><i class="sw-line" style="background:var(--pulse)"></i>Pulse</span>
+        <span><i class="sw-band"></i>Normal pulse</span>
+        <span><i class="sw-med"></i>Medicine</span>
+      </div>
+      <div id="chartMedList" class="note" style="margin-top:12px"></div>
+      <div class="btn-row" style="margin-top:16px">
+        <button class="btn btn-ghost btn-sm" style="width:auto" onclick="exportChartExcel()">Export to Excel</button>
+        <button class="btn btn-ghost btn-sm" style="width:auto" onclick="printChartView()">Print / PDF for doctor</button>
       </div>
     </div>
     <div class="card">
-      <div class="card-title">Summary</div>
+      <div class="ct">Summary for this period</div>
       <div id="chartStats"></div>
     </div>
   </section>
 
-  <!-- Records and Settings views are preserved with the new clean styling -->
+  <!-- ===== RECORDS ===== -->
   <section class="view" id="view-records">
-    <div class="view-head" style="font-size:22px;font-weight:700">All Records</div>
+    <div class="view-head">Records</div>
+
     <div class="card">
-      <div class="card-title">Filter Period</div>
+      <div class="ct">Filter</div>
       <div class="seg" id="tableSeg">
         <button data-p="today">Today</button>
-        <button data-p="7days" class="on">7 Days</button>
-        <button data-p="month">This Month</button>
-        <button data-p="selmonth">Pick Month</button>
+        <button data-p="7days" class="on">7 days</button>
+        <button data-p="month">This month</button>
+        <button data-p="selmonth">Pick month</button>
         <button data-p="custom">Custom</button>
       </div>
       <div id="tableExtra" class="hide"></div>
     </div>
+
     <div class="card">
-      <div class="card-title">Analysis</div>
+      <div class="ct">Analysis</div>
       <div id="analysis"></div>
     </div>
+
     <div class="card">
-      <div class="card-title">Timeline</div>
-      <div id="timeline"></div>
+      <div class="ct">Timeline</div>
+      <div id="timeline" class="timeline"></div>
     </div>
+
     <div class="card">
-      <div class="card-title">Detailed Table</div>
+      <div class="ct">All records in range</div>
       <div class="tablewrap">
-        <table id="recTable">
-          <thead><tr>
-            <th>Date</th><th>Time</th><th>Type</th><th>Detail</th><th>Notes</th><th></th>
-          </tr></thead>
+        <table>
+          <thead><tr><th>Date</th><th>Time</th><th>Type</th><th>Reading</th><th>Notes</th><th></th></tr></thead>
           <tbody id="recBody"></tbody>
         </table>
       </div>
     </div>
+
     <div class="card">
-      <div class="card-title">Data Management</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
-        <button class="btn btn-ghost" onclick="exportCSV()">Export CSV</button>
-        <button class="btn btn-ghost" onclick="exportJSON()">Backup JSON</button>
+      <div class="ct">Backup &amp; data</div>
+      <div class="btn-row" style="margin-bottom:10px">
+        <button class="btn btn-soft" onclick="exportCSV()">Export all (Excel)</button>
+        <button class="btn btn-soft" onclick="exportJSON()">Backup (JSON)</button>
       </div>
-      <button class="btn btn-ghost" onclick="document.getElementById('importFile').click()">Restore Backup</button>
+      <button class="btn btn-ghost" style="margin-bottom:10px" onclick="document.getElementById('importFile').click()">Restore from JSON backup</button>
       <input type="file" id="importFile" accept="application/json,.json" class="hide" onchange="importJSON(event)">
-      <button class="btn btn-danger" onclick="clearAll()" style="margin-top:12px">Clear All Records</button>
+      <button class="btn btn-danger" onclick="clearAll()">Clear all records</button>
+      <p class="note" style="margin-top:10px">The Excel file opens directly in Excel. JSON is a full backup you can restore later. Clearing keeps your settings but removes every record on all synced phones.</p>
     </div>
   </section>
 
+  <!-- ===== SETTINGS ===== -->
   <section class="view" id="view-settings">
-    <div class="view-head" style="font-size:22px;font-weight:700">Settings</div>
+    <div class="view-head">Settings</div>
+
     <div class="card">
-      <div class="card-title">Patient Information</div>
-      <label class="field"><span>Patient Name</span><input type="text" id="set_name" placeholder="e.g. Mother"></label>
+      <div class="ct">Patient</div>
+      <label class="field" style="margin:0"><span>Patient name</span><input type="text" id="set_name" placeholder="e.g. Mother"></label>
     </div>
-    <!-- Other settings sections are preserved from the original -->
-    <button class="btn btn-primary" onclick="saveSettings()" style="margin:20px 0">Save Settings</button>
+
+    <div class="card">
+      <div class="ct">Normal pulse range</div>
+      <div class="two" style="margin-bottom:0">
+        <label class="field" style="margin:0"><span>Lower (bpm)</span><input type="number" id="set_low" inputmode="numeric"></label>
+        <label class="field" style="margin:0"><span>Upper (bpm)</span><input type="number" id="set_high" inputmode="numeric"></label>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="ct">Normal blood pressure range</div>
+      <div class="two">
+        <label class="field"><span>Systolic lower</span><input type="number" id="set_sys_low" inputmode="numeric"></label>
+        <label class="field"><span>Systolic upper</span><input type="number" id="set_sys_high" inputmode="numeric"></label>
+      </div>
+      <div class="two" style="margin-bottom:0">
+        <label class="field" style="margin:0"><span>Diastolic lower</span><input type="number" id="set_dia_low" inputmode="numeric"></label>
+        <label class="field" style="margin:0"><span>Diastolic upper</span><input type="number" id="set_dia_high" inputmode="numeric"></label>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="ct">Common medicines</div>
+      <div class="chips" id="medChips"></div>
+      <div style="display:flex;gap:8px">
+        <input type="text" id="newMed" placeholder="Add a medicine name">
+        <button class="btn btn-soft btn-sm" style="flex:0 0 auto" onclick="addMedName()">Add</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="ct">Reminder note</div>
+      <label class="field" style="margin:0 0 12px"><span>Shown on the home screen</span>
+        <textarea id="set_reminder" placeholder="e.g. Give 5 mg at 8 AM and 8 PM. Measure BP before each dose."></textarea></label>
+      <button class="btn btn-ghost" id="notifBtn" onclick="enableNotif()" style="display:none">Turn on a browser reminder</button>
+      <p class="note" style="margin-top:8px">Just a note — phone push reminders aren't reliable in a web page, so please also set a phone alarm.</p>
+    </div>
+
+    <button class="btn btn-primary" style="margin-bottom:16px" onclick="saveSettings()">Save settings</button>
+
+    <div class="card">
+      <div class="ct">Install on your phone</div>
+      <button class="btn btn-primary hide" id="installBtn" style="margin-bottom:12px">Add to home screen</button>
+      <p class="note"><b>Android (Chrome):</b> tap the ⋮ menu → <b>Add to Home screen</b> / <b>Install app</b>.</p>
+      <p class="note" style="margin-top:8px"><b>iPhone (Safari):</b> tap <b>Share</b> → <b>Add to Home Screen</b>.</p>
+      <p class="note" style="margin-top:8px">Once opened it keeps working offline; data syncs between phones when online.</p>
+    </div>
+
+    <div class="card">
+      <div class="ct">About</div>
+      <p class="note">Records are saved on this phone and shared in real time with the other phone signed in to the same logbook. This tool keeps notes — it does not diagnose. For anything concerning, contact a doctor.</p>
+    </div>
   </section>
 
 </main>
 
-<nav class="tabbar" style="background:#fff;border-top:1px solid var(--line);box-shadow:0 -2px 12px rgba(0,0,0,0.06)">
-  <div class="wrap" style="display:flex">
-    <button class="on" data-v="home" onclick="show('home')" style="flex:1;padding:8px 4px;font-size:12px"><span style="font-size:24px">🏠</span><br>Home</button>
-    <button data-v="add" onclick="show('add')" style="flex:1;padding:8px 4px;font-size:12px"><span style="font-size:24px">➕</span><br>Add</button>
-    <button data-v="trends" onclick="show('trends')" style="flex:1;padding:8px 4px;font-size:12px"><span style="font-size:24px">📈</span><br>Trends</button>
-    <button data-v="records" onclick="show('records')" style="flex:1;padding:8px 4px;font-size:12px"><span style="font-size:24px">📋</span><br>Records</button>
-    <button data-v="settings" onclick="show('settings')" style="flex:1;padding:8px 4px;font-size:12px"><span style="font-size:24px">⚙️</span><br>Settings</button>
+<nav class="tabbar">
+  <div class="wrap">
+    <button class="on" data-v="home" onclick="show('home')">
+      <svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7"/><path d="M5 9.5V20h14V9.5"/></svg>Home</button>
+    <button data-v="add" onclick="show('add')">
+      <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Add</button>
+    <button data-v="trends" onclick="show('trends')">
+      <svg viewBox="0 0 24 24"><path d="M4 4v16h16"/><path d="M7 14l3.5-3.5 3 3L21 7"/></svg>Trends</button>
+    <button data-v="records" onclick="show('records')">
+      <svg viewBox="0 0 24 24"><path d="M8 6h12M8 12h12M8 18h12"/><path d="M4 6h.01M4 12h.01M4 18h.01"/></svg>Records</button>
+    <button data-v="settings" onclick="show('settings')">
+      <svg viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2.4"/><circle cx="8" cy="17" r="2.4"/></svg>Settings</button>
   </div>
 </nav>
 
 <div class="overlay" id="overlay">
   <div class="modal">
-    <h3 id="editTitle">Edit Record</h3>
+    <h3 id="editTitle">Edit record</h3>
     <input type="hidden" id="e_id">
-    <!-- Modal fields preserved from original -->
+    <div class="two">
+      <label class="field"><span>Date</span><input type="date" id="e_date"></label>
+      <label class="field"><span>Time</span><input type="time" id="e_time"></label>
+    </div>
+    <div id="e_readingFields">
+      <div class="two">
+        <label class="field"><span>Systolic</span><input type="number" id="e_sys" inputmode="numeric" placeholder="e.g. 120"></label>
+        <label class="field"><span>Diastolic</span><input type="number" id="e_dia" inputmode="numeric" placeholder="e.g. 80"></label>
+      </div>
+      <label class="field"><span>Pulse (bpm)</span><input type="number" id="e_bpm" inputmode="numeric" placeholder="e.g. 78"></label>
+    </div>
+    <div id="e_medFields">
+      <label class="field"><span>Medicine name</span><input type="text" id="e_name" list="medList"></label>
+      <label class="field"><span>Dose / quantity</span><input type="text" id="e_dose"></label>
+    </div>
+    <label class="field"><span>Notes</span><textarea id="e_note"></textarea></label>
+    <div class="btn-row" style="margin-bottom:10px">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveEdit()">Save changes</button>
+    </div>
+    <button class="btn btn-danger" onclick="deleteFromModal()">Delete this record</button>
   </div>
 </div>
 
 <div class="toast" id="toast"></div>
 
 <script>
-/* Full original functionality preserved + premium UI */
+/* =====================================================================
+   Heart Care — blood pressure, pulse & medicine tracker.
+   Local-first (localStorage) + live shared sync via Firebase RTDB.
+   A "reading" record may contain blood pressure, pulse, or both.
+   ===================================================================== */
+
+/* ---------- Firebase (shared logbook) ---------- */
 const firebaseConfig = {
   apiKey: "AIzaSyC24pdhc9sc6CLwAxx9FKobmDLl4OyFpms",
   authDomain: "heart-care-tracker.firebaseapp.com",
@@ -346,25 +556,22 @@ const firebaseConfig = {
   appId: "1:925878483154:web:f6dcb916c39ac5dd31150b",
   databaseURL: "https://heart-care-tracker-default-rtdb.asia-southeast1.firebasedatabase.app/"
 };
+let db = null, cloudReady = false;
+try{
+  firebase.initializeApp(firebaseConfig);
+  db = firebase.database();
+}catch(e){ console.warn('Firebase init failed — running locally', e); }
 
-firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
-
+/* ---------- Storage keys & state ---------- */
 const K_REC = 'hc_records_v1';
 const K_SET = 'hc_settings_v1';
 
-let records = [];
+let records = [];   // [{id,type:'pulse'|'med',date,time,ts,bpm,sys,dia,name,dose,note}]
 let settings = {};
 const DEFAULT_SETTINGS = {
-  patientName: '',
-  lowerLimit: 60,
-  upperLimit: 100,
-  bpSysLow: 90,
-  bpSysHigh: 140,
-  bpDiaLow: 60,
-  bpDiaHigh: 90,
-  medList: ['Amlodipine', 'Metoprolol', 'Telmisartan'],
-  reminderText: ''
+  patientName:'', lowerLimit:60, upperLimit:100,
+  bpSysLow:90, bpSysHigh:140, bpDiaLow:60, bpDiaHigh:90,
+  medList:['Amlodipine','Metoprolol','Telmisartan'], reminderText:''
 };
 
 const $ = id => document.getElementById(id);
@@ -377,95 +584,726 @@ function load(){
   records.forEach(r => { if(!r.ts) r.ts = toTs(r.date, r.time); });
 }
 
-function saveRecords(){ 
-  localStorage.setItem(K_REC, JSON.stringify(records)); 
-  db.ref('records').set(records);
+/* Save locally, then push to the shared cloud copy. */
+function saveRecords(){
+  localStorage.setItem(K_REC, JSON.stringify(records));
+  if(db){ db.ref('records').set(records).catch(()=>setSync('offline')); }
 }
-function saveSettingsStore(){ 
-  localStorage.setItem(K_SET, JSON.stringify(settings)); 
-  db.ref('settings').set(settings);
+function saveSettingsStore(){
+  localStorage.setItem(K_SET, JSON.stringify(settings));
+  if(db){ db.ref('settings').set(settings).catch(()=>setSync('offline')); }
 }
 
-function initFirebaseSync(){
-  db.ref('records').on('value', snapshot => {
-    const cloudData = snapshot.val();
-    records = cloudData ? Object.values(cloudData) : [];
+/* Live listeners — fire when you OR the other phone changes anything. */
+function initSync(){
+  if(!db) { setSync('local'); return; }
+  setSync('connecting');
+  db.ref('records').on('value', snap => {
+    const v = snap.val();
+    records = v ? Object.values(v) : [];
+    records.forEach(r => { if(!r.ts) r.ts = toTs(r.date, r.time); });
     localStorage.setItem(K_REC, JSON.stringify(records));
-    refreshCurrentView();
-  });
-
-  db.ref('settings').on('value', snapshot => {
-    const cloudSett = snapshot.val();
-    if(cloudSett){
-      settings = Object.assign({}, DEFAULT_SETTINGS, cloudSett);
-      localStorage.setItem(K_SET, JSON.stringify(settings));
-      refreshCurrentView();
-    }
-  });
+    setSync('synced'); refreshCurrentView();
+  }, () => setSync('offline'));
+  db.ref('settings').on('value', snap => {
+    const v = snap.val();
+    if(v){ settings = Object.assign({}, DEFAULT_SETTINGS, v); localStorage.setItem(K_SET, JSON.stringify(settings)); refreshMedDatalist(); refreshCurrentView(); }
+  }, () => {});
+}
+function setSync(state){
+  cloudReady = (state === 'synced');
+  const b = $('syncBadge'); if(!b) return;
+  const map = { local:['Local','var(--faint)'], connecting:['Syncing…','var(--lo)'],
+                synced:['Synced','var(--ok)'], offline:['Offline','var(--hi)'] };
+  const s = map[state] || map.local;
+  b.lastChild.textContent = s[0];
+  b.querySelector('.d').style.background = s[1];
+}
+function refreshCurrentView(){
+  const v = document.querySelector('.view.active'); if(!v) return;
+  if(v.id==='view-home') renderDashboard();
+  if(v.id==='view-trends') renderTrends();
+  if(v.id==='view-records') renderRecords();
+  if(v.id==='view-settings') renderSettings();
 }
 
-function refreshCurrentView() {
-  const activeView = document.querySelector('.view.active');
-  if(!activeView) return;
-  if(activeView.id === 'view-home') renderDashboard();
-  if(activeView.id === 'view-trends') renderTrends();
-  if(activeView.id === 'view-records') renderRecords();
-  if(activeView.id === 'view-settings') renderSettings();
-}
-
-function toTs(date, time){ const d = new Date((date||'') + 'T' + (time||'00:00')); return isNaN(d) ? 0 : d.getTime(); }
+/* ---------- Date / format helpers ---------- */
+function toTs(date,time){ const d=new Date((date||'')+'T'+(time||'00:00')); return isNaN(d)?0:d.getTime(); }
 function pad(n){ return String(n).padStart(2,'0'); }
-function todayStr(d){ d = d || new Date(); return d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate()); }
-function nowTime(){ const d = new Date(); return pad(d.getHours()) + ':' + pad(d.getMinutes()); }
-function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function todayStr(d){ d=d||new Date(); return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
+function nowTime(){ const d=new Date(); return pad(d.getHours())+':'+pad(d.getMinutes()); }
+function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function niceDate(date){ const d=new Date(date+'T00:00'); if(isNaN(d))return date;
+  return d.toLocaleDateString(undefined,{weekday:'short',day:'numeric',month:'short'}); }
+function shortDate(date){ const d=new Date(date+'T00:00'); if(isNaN(d))return date;
+  return d.toLocaleDateString(undefined,{day:'numeric',month:'short'}); }
+function niceTime(t){ if(!t)return''; const [h,m]=t.split(':').map(Number);
+  return ((h%12)||12)+':'+pad(m)+' '+(h>=12?'PM':'AM'); }
 
-function niceDate(date){
-  const d = new Date(date + 'T00:00'); if(isNaN(d)) return date;
-  return d.toLocaleDateString(undefined,{weekday:'short',day:'numeric',month:'short'});
-}
-function niceTime(t){
-  if(!t) return '';
-  const [h,m] = t.split(':').map(Number);
-  const ap = h>=12 ? 'PM':'AM'; const h12 = (h%12)||12;
-  return h12 + ':' + pad(m) + ' ' + ap;
-}
-
+/* ---------- Status classification ---------- */
 function classify(bpm){
-  if(bpm > settings.upperLimit) return {label:'High', cls:'high'};
-  if(bpm < settings.lowerLimit) return {label:'Low',  cls:'low'};
-  return {label:'Normal', cls:'normal'};
+  if(bpm==null) return null;
+  if(bpm>settings.upperLimit) return {label:'High',cls:'high'};
+  if(bpm<settings.lowerLimit) return {label:'Low',cls:'low'};
+  return {label:'Normal',cls:'normal'};
 }
-
-function statusColor(cls){ 
-  return cls==='high' ? '#c23d4f' : cls==='low' ? '#3b6ea0' : '#2d8a5e';
+function classifyBP(sys,dia){
+  if(sys==null||dia==null) return null;
+  if(sys>settings.bpSysHigh||dia>settings.bpDiaHigh) return {label:'High',cls:'high'};
+  if(sys<settings.bpSysLow ||dia<settings.bpDiaLow ) return {label:'Low',cls:'low'};
+  return {label:'Normal',cls:'normal'};
 }
+function statusColor(cls){ return cls==='high'?'var(--hi)':cls==='low'?'var(--lo)':'var(--ok)'; }
 
+/* =====================================================================
+   VIEW SWITCHING
+   ===================================================================== */
 function show(name){
-  document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.id === 'view-' + name));
-  document.querySelectorAll('nav button').forEach(b => b.classList.toggle('on', b.dataset.v === name));
-  if(name === 'home') renderDashboard();
-  if(name === 'trends') renderTrends();
-  if(name === 'records') renderRecords();
-  if(name === 'settings') renderSettings();
+  document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active', v.id==='view-'+name));
+  document.querySelectorAll('.tabbar button').forEach(b=>b.classList.toggle('on', b.dataset.v===name));
+  window.scrollTo({top:0});
+  if(name==='home') renderDashboard();
+  if(name==='trends') renderTrends();
+  if(name==='records') renderRecords();
+  if(name==='settings') renderSettings();
 }
-
 function openAdd(which){
   show('add');
-  const card = which === 'med' ? $('addMedCard') : $('addPulseCard');
-  setTimeout(() => card.scrollIntoView({behavior:'smooth'}), 100);
+  const card = which==='med' ? $('addMedCard') : $('addReadingCard');
+  setTimeout(()=>card.scrollIntoView({behavior:'smooth',block:'start'}), 60);
 }
 
+/* =====================================================================
+   DASHBOARD
+   ===================================================================== */
 function renderDashboard(){
   $('patientTitle').textContent = settings.patientName || 'Heart Care';
-  // Full dashboard logic from original is preserved
-  console.log('Premium dashboard rendered');
-  // (The full implementation is identical to the original file)
+  $('reminderBanner').innerHTML = settings.reminderText
+    ? `<div class="card" style="background:#fbf7ef;border-color:#efe4cf">
+         <div class="ct" style="color:#9a7d3e;margin-bottom:8px">Reminder</div>
+         <div style="font-size:14.5px;color:#6f5b2c">${esc(settings.reminderText)}</div></div>` : '';
+
+  const t = todayStr();
+  const todays = records.filter(r=>r.date===t);
+  const readings = todays.filter(r=>r.type==='pulse').sort((a,b)=>a.ts-b.ts);
+  const meds = todays.filter(r=>r.type==='med').sort((a,b)=>a.ts-b.ts);
+
+  const lastBp = [...readings].reverse().find(r=>r.sys!=null&&r.dia!=null);
+  const lastPu = [...readings].reverse().find(r=>r.bpm!=null);
+
+  if(lastBp){
+    const c = classifyBP(lastBp.sys,lastBp.dia);
+    $('hBp').innerHTML = lastBp.sys+'/'+lastBp.dia+' <span class="u">mmHg</span>';
+    $('hBpStatus').textContent = c.label+' · '+niceTime(lastBp.time);
+    $('hBpDot').style.background = statusColor(c.cls);
+  } else { $('hBp').textContent='--'; $('hBpStatus').textContent='No reading'; $('hBpDot').style.background='var(--faint)'; }
+
+  if(lastPu){
+    const c = classify(lastPu.bpm);
+    $('hPulse').innerHTML = lastPu.bpm+' <span class="u">bpm</span>';
+    $('hPulseStatus').textContent = c.label+' · '+niceTime(lastPu.time);
+    $('hPulseDot').style.background = statusColor(c.cls);
+  } else { $('hPulse').innerHTML='-- <span class="u">bpm</span>'; $('hPulseStatus').textContent='No reading'; $('hPulseDot').style.background='var(--faint)'; }
+
+  const puVals = readings.filter(r=>r.bpm!=null).map(r=>r.bpm);
+  if(puVals.length){
+    $('stLow').textContent = Math.min(...puVals);
+    $('stHigh').textContent = Math.max(...puVals);
+    $('stAvg').textContent = Math.round(puVals.reduce((a,b)=>a+b,0)/puVals.length);
+  } else { $('stLow').textContent=$('stAvg').textContent=$('stHigh').textContent='--'; }
+
+  const bpToday = readings.filter(r=>r.sys!=null);
+  $('bpToday').innerHTML = bpToday.length
+    ? `Average BP today: <b>${Math.round(bpToday.reduce((a,b)=>a+b.sys,0)/bpToday.length)}/${Math.round(bpToday.reduce((a,b)=>a+b.dia,0)/bpToday.length)}</b> · ${bpToday.length} reading${bpToday.length>1?'s':''}`
+    : 'No blood pressure recorded today yet.';
+
+  $('todayReadings').innerHTML = readings.length ? readings.map(r=>rowHtml(r)).join('')
+    : '<div class="empty">No readings today yet.</div>';
+  $('todayMeds').innerHTML = meds.length ? meds.map(m=>`<div class="row">
+      <div class="mk" style="background:var(--med)"></div>
+      <div class="main"><div class="t1">${esc(m.name||'Medicine')}${m.dose?` · <span class="muted" style="font-weight:500">${esc(m.dose)}</span>`:''}</div>
+        ${m.note?`<div class="t2">${esc(m.note)}</div>`:''}</div>
+      <div class="time">${niceTime(m.time)}</div></div>`).join('')
+    : '<div class="empty">No medicine recorded today yet.</div>';
 }
+
+/* A single reading row (BP and/or pulse). */
+function rowHtml(r){
+  const parts = [];
+  let markColor = 'var(--line-2)';
+  if(r.sys!=null&&r.dia!=null){
+    const c=classifyBP(r.sys,r.dia); markColor=statusColor(c.cls);
+    parts.push(`<span style="font-weight:650">${r.sys}/${r.dia}</span> <span class="muted" style="font-size:12.5px">mmHg</span> <span class="badge b-${c.cls}"><span class="dot"></span>${c.label}</span>`);
+  }
+  if(r.bpm!=null){
+    const c=classify(r.bpm); if(r.sys==null) markColor=statusColor(c.cls);
+    parts.push(`<span style="font-weight:650">${r.bpm}</span> <span class="muted" style="font-size:12.5px">bpm</span> <span class="badge b-${c.cls}"><span class="dot"></span>${c.label}</span>`);
+  }
+  return `<div class="row">
+    <div class="mk" style="background:${markColor}"></div>
+    <div class="main"><div class="t1" style="line-height:1.7">${parts.join('<br>')}</div>
+      ${r.note?`<div class="t2">${esc(r.note)}</div>`:''}</div>
+    <div class="time">${niceTime(r.time)}</div></div>`;
+}
+
+/* =====================================================================
+   ADD FORMS
+   ===================================================================== */
+function readBP(sysRaw,diaRaw){
+  if(sysRaw==='' && diaRaw==='') return {sys:null,dia:null};
+  const sys=parseInt(sysRaw,10), dia=parseInt(diaRaw,10);
+  if(!sys||!dia) return {err:'Enter both systolic and diastolic, or leave both blank'};
+  if(sys<50||sys>260||dia<30||dia>160) return {err:'Check the BP numbers'};
+  if(sys<=dia) return {err:'Systolic should be higher than diastolic'};
+  return {sys,dia};
+}
+function saveReading(){
+  if(!$('p_date').value){ toast('Please pick a date'); return; }
+  if(!$('p_time').value){ toast('Please pick a time'); return; }
+  const bpmRaw=$('p_bpm').value.trim();
+  let bpm=null;
+  if(bpmRaw!==''){ bpm=parseInt(bpmRaw,10); if(!bpm||bpm<20||bpm>300){ toast('Pulse must be between 20 and 300'); return; } }
+  const bp=readBP($('p_sys').value.trim(),$('p_dia').value.trim());
+  if(bp.err){ toast(bp.err); return; }
+  if(bpm==null && bp.sys==null){ toast('Enter a blood pressure or a pulse'); return; }
+
+  records.push({ id:uid(), type:'pulse', date:$('p_date').value, time:$('p_time').value,
+    ts:toTs($('p_date').value,$('p_time').value), bpm, sys:bp.sys, dia:bp.dia, note:$('p_note').value.trim() });
+  saveRecords();
+  $('p_bpm').value=$('p_sys').value=$('p_dia').value=$('p_note').value='';
+  $('p_time').value = nowTime();
+  toast('Reading saved'); renderDashboard();
+}
+function saveMed(){
+  if(!$('m_date').value){ toast('Please pick a date'); return; }
+  if(!$('m_time').value){ toast('Please pick a time'); return; }
+  const name=$('m_name').value.trim();
+  if(!name){ toast('Enter a medicine name'); return; }
+  records.push({ id:uid(), type:'med', date:$('m_date').value, time:$('m_time').value,
+    ts:toTs($('m_date').value,$('m_time').value), name, dose:$('m_dose').value.trim(), note:$('m_note').value.trim() });
+  saveRecords();
+  if(name && !settings.medList.some(x=>x.toLowerCase()===name.toLowerCase())){
+    settings.medList.push(name); saveSettingsStore(); refreshMedDatalist();
+  }
+  $('m_dose').value=$('m_note').value=''; $('m_time').value=nowTime();
+  toast('Medicine saved'); renderDashboard();
+}
+
+/* =====================================================================
+   DATE RANGE / FILTERS
+   ===================================================================== */
+function getRange(period, extra){
+  const now=new Date(); let start,end,label,spanDays;
+  if(period==='today'){
+    start=new Date(now); start.setHours(0,0,0,0); end=new Date(now); end.setHours(23,59,59,999);
+    label='Today, '+shortDate(todayStr()); spanDays=1;
+  } else if(period==='7days'){
+    end=new Date(now); end.setHours(23,59,59,999); start=new Date(now); start.setDate(start.getDate()-6); start.setHours(0,0,0,0);
+    label='Last 7 days'; spanDays=7;
+  } else if(period==='month'){
+    start=new Date(now.getFullYear(),now.getMonth(),1,0,0,0,0); end=new Date(now.getFullYear(),now.getMonth()+1,0,23,59,59,999);
+    label=now.toLocaleDateString(undefined,{month:'long',year:'numeric'}); spanDays=31;
+  } else if(period==='selmonth'){
+    const mv=(extra&&extra.month)||todayStr().slice(0,7); const [y,m]=mv.split('-').map(Number);
+    start=new Date(y,m-1,1,0,0,0,0); end=new Date(y,m,0,23,59,59,999);
+    label=start.toLocaleDateString(undefined,{month:'long',year:'numeric'}); spanDays=31;
+  } else {
+    const s=extra&&extra.start, e=extra&&extra.end;
+    start=new Date((s||todayStr())+'T00:00'); end=new Date((e||todayStr())+'T23:59:59');
+    label=(s?shortDate(s):'?')+' to '+(e?shortDate(e):'?');
+    spanDays=Math.max(1,Math.round((end-start)/86400000));
+  }
+  return { start:+start, end:+end, label, spanDays };
+}
+function inRange(r,range){ return r.ts>=range.start && r.ts<=range.end; }
+function buildExtra(period,prefix,onChange){
+  if(period==='selmonth') return `<label class="field" style="margin:0"><span>Choose month</span>
+    <input type="month" id="${prefix}_month" value="${todayStr().slice(0,7)}" onchange="${onChange}"></label>`;
+  if(period==='custom'){ const t=todayStr(); const wk=new Date(); wk.setDate(wk.getDate()-6);
+    return `<div class="two" style="margin:0">
+      <label class="field" style="margin:0"><span>From</span><input type="date" id="${prefix}_start" value="${todayStr(wk)}" onchange="${onChange}"></label>
+      <label class="field" style="margin:0"><span>To</span><input type="date" id="${prefix}_end" value="${t}" onchange="${onChange}"></label></div>`; }
+  return '';
+}
+function prepData(range){
+  const inr = records.filter(r=>inRange(r,range));
+  const readings = inr.filter(r=>r.type==='pulse').sort((a,b)=>a.ts-b.ts);
+  return {
+    all:inr, readings,
+    pulsePts: readings.filter(r=>r.bpm!=null),
+    bpPts: readings.filter(r=>r.sys!=null&&r.dia!=null),
+    meds: inr.filter(r=>r.type==='med').sort((a,b)=>a.ts-b.ts)
+  };
+}
+
+/* =====================================================================
+   TRENDS — custom SVG chart (works offline, prints sharply)
+   ===================================================================== */
+let chartPeriod='7days';
+function bindSeg(segId,setPeriod,rerender){
+  $(segId).querySelectorAll('button').forEach(b=>{
+    b.onclick=()=>{ $(segId).querySelectorAll('button').forEach(x=>x.classList.remove('on'));
+      b.classList.add('on'); setPeriod(b.dataset.p); rerender(); };
+  });
+}
+function chartExtraValues(){
+  return { month:$('c_month')?$('c_month').value:null, start:$('c_start')?$('c_start').value:null, end:$('c_end')?$('c_end').value:null };
+}
+function renderTrends(){
+  const ex=$('chartExtra'); const html=buildExtra(chartPeriod,'c','renderTrends()');
+  ex.innerHTML=html; ex.classList.toggle('hide',!html);
+  const range=getRange(chartPeriod, chartExtraValues());
+  const data=prepData(range);
+
+  const box=$('chartBox');
+  const w=box.clientWidth||box.parentElement.clientWidth||340, h=300;
+  box.innerHTML = '<div id="chartTip"></div>' + buildChartSVG(w,h,data,range,{showLabels:data.readings.length<=14});
+  attachChartTip(range);
+
+  renderChartMedList(data);
+  renderPeriodStats($('chartStats'),data,range);
+}
+function renderChartMedList(data){
+  const box=$('chartMedList');
+  box.innerHTML = data.meds.length
+    ? '<b>Medicine in this period:</b> '+data.meds.map(m=>`${shortDate(m.date)} ${niceTime(m.time)} — ${esc(m.name||'')}${m.dose?' ('+esc(m.dose)+')':''}`).join(' · ')
+    : '';
+}
+
+/* Build the chart as an SVG string. */
+function buildChartSVG(width,height,data,range,opts){
+  const S=settings, showLabels=opts&&opts.showLabels;
+  const pad={l:42,r:14,t:22,b:32};
+  const W=width-pad.l-pad.r, H=height-pad.t-pad.b;
+  const single=range.spanDays<=1;
+
+  if(!data.readings.length && !data.meds.length){
+    return `<svg viewBox="0 0 ${width} ${height}"><text x="${width/2}" y="${height/2}" text-anchor="middle" fill="#9aa4ad" font-size="14" font-family="sans-serif">No data in this period yet.</text></svg>`;
+  }
+
+  let x0=range.start, x1=range.end; if(x1<=x0) x1=x0+3600000;
+  const xp=(x1-x0)*0.04; const XA=x0-xp, XB=x1+xp;
+  const sx=ts=>pad.l+(ts-XA)/(XB-XA)*W;
+
+  const vals=[];
+  data.pulsePts.forEach(p=>vals.push(p.bpm));
+  data.bpPts.forEach(p=>{vals.push(p.sys);vals.push(p.dia);});
+  vals.push(S.lowerLimit,S.upperLimit,S.bpDiaHigh,S.bpSysHigh);
+  let ymin=Math.min(...vals), ymax=Math.max(...vals);
+  if(!isFinite(ymin)){ymin=40;ymax=160;}
+  ymin=Math.floor((ymin-8)/10)*10; ymax=Math.ceil((ymax+10)/10)*10;
+  if(ymax<=ymin) ymax=ymin+40;
+  const sy=v=>pad.t+(ymax-v)/(ymax-ymin)*H;
+
+  const C={sys:'#3a6ea5',dia:'#8fb0d0',pulse:'#ca4a55',med:'#a08a6a',
+           grid:'#eceff1',gridLine:'#e3e7ea',axis:'#9aa4ad',ink:'#3b4654'};
+  let s='';
+
+  // plot frame
+  s+=`<rect x="${pad.l}" y="${pad.t}" width="${W}" height="${H}" fill="#fff" stroke="${C.gridLine}"/>`;
+
+  // y gridlines + labels
+  let step=Math.max(10,Math.round((ymax-ymin)/5/10)*10);
+  for(let v=ymin; v<=ymax+0.1; v+=step){
+    const y=sy(v);
+    s+=`<line x1="${pad.l}" y1="${y.toFixed(1)}" x2="${pad.l+W}" y2="${y.toFixed(1)}" stroke="${C.grid}"/>`;
+    s+=`<text x="${pad.l-7}" y="${(y+3.5).toFixed(1)}" text-anchor="end" fill="${C.axis}" font-size="10.5" font-family="sans-serif">${v}</text>`;
+  }
+  // pulse normal band
+  s+=`<rect x="${pad.l}" y="${sy(S.upperLimit).toFixed(1)}" width="${W}" height="${(sy(S.lowerLimit)-sy(S.upperLimit)).toFixed(1)}" fill="rgba(63,138,106,.07)"/>`;
+  // BP threshold dashed lines (subtle)
+  [[S.bpSysHigh,'Sys '+S.bpSysHigh],[S.bpDiaHigh,'Dia '+S.bpDiaHigh]].forEach(([v,lab])=>{
+    if(v>ymin&&v<ymax){ const y=sy(v);
+      s+=`<line x1="${pad.l}" y1="${y.toFixed(1)}" x2="${pad.l+W}" y2="${y.toFixed(1)}" stroke="#c9d2da" stroke-dasharray="3 4"/>`;
+      s+=`<text x="${pad.l+W-3}" y="${(y-3).toFixed(1)}" text-anchor="end" fill="#b3bcc4" font-size="9" font-family="sans-serif">${lab}</text>`;
+    }
+  });
+
+  // x ticks
+  const nT=single?6:6;
+  for(let i=0;i<=nT;i++){
+    const ts=x0+(x1-x0)*i/nT, x=sx(ts), d=new Date(ts);
+    const lab=single?(((d.getHours()%12)||12)+(d.getHours()>=12?'p':'a')):d.toLocaleDateString(undefined,{day:'numeric',month:'short'});
+    s+=`<line x1="${x.toFixed(1)}" y1="${pad.t+H}" x2="${x.toFixed(1)}" y2="${pad.t+H+4}" stroke="${C.axis}"/>`;
+    s+=`<text x="${x.toFixed(1)}" y="${pad.t+H+16}" text-anchor="middle" fill="${C.axis}" font-size="10" font-family="sans-serif">${lab}</text>`;
+  }
+
+  // medicine markers
+  data.meds.forEach(m=>{
+    const x=sx(m.ts); if(x<pad.l-1||x>pad.l+W+1) return;
+    s+=`<line x1="${x.toFixed(1)}" y1="${pad.t+8}" x2="${x.toFixed(1)}" y2="${pad.t+H}" stroke="${C.med}" stroke-width="1.3" stroke-dasharray="3 3" opacity=".8"/>`;
+    s+=`<circle cx="${x.toFixed(1)}" cy="${pad.t+5}" r="3.4" fill="${C.med}"/>`;
+  });
+
+  // helper to draw a series (line + points)
+  function series(pts,key,color,r){
+    if(!pts.length) return '';
+    let out='';
+    if(pts.length>1){
+      const d=pts.map((p,i)=>(i?'L':'M')+sx(p.ts).toFixed(1)+' '+sy(p[key]).toFixed(1)).join(' ');
+      out+=`<path d="${d}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round"/>`;
+    }
+    pts.forEach(p=>{
+      out+=`<circle class="pt" data-rid="${p.id}" cx="${sx(p.ts).toFixed(1)}" cy="${sy(p[key]).toFixed(1)}" r="${r}" fill="${color}" stroke="#fff" stroke-width="1.6"/>`;
+    });
+    return out;
+  }
+  s+=series(data.bpPts,'sys',C.sys,3.6);
+  s+=series(data.bpPts,'dia',C.dia,3.6);
+  s+=series(data.pulsePts,'bpm',C.pulse,4);
+
+  // value labels (pointers) — kept light to avoid clutter
+  if(showLabels){
+    data.bpPts.forEach(p=>{ const x=sx(p.ts), y=sy(p.sys);
+      s+=`<text x="${x.toFixed(1)}" y="${(y-9).toFixed(1)}" text-anchor="middle" fill="${C.sys}" font-size="10.5" font-weight="700" font-family="sans-serif">${p.sys}/${p.dia}</text>`; });
+    data.pulsePts.forEach(p=>{ const x=sx(p.ts), y=sy(p.bpm);
+      // nudge pulse label below if a BP label likely sits above
+      const below = data.bpPts.some(b=>Math.abs(b.ts-p.ts)<1 && b.sys>=p.bpm);
+      const yy = below ? y+16 : y-9;
+      s+=`<text x="${x.toFixed(1)}" y="${yy.toFixed(1)}" text-anchor="middle" fill="${C.pulse}" font-size="10.5" font-weight="700" font-family="sans-serif">${p.bpm}</text>`; });
+  }
+
+  // y axis caption
+  s+=`<text x="12" y="${pad.t+H/2}" transform="rotate(-90 12 ${pad.t+H/2})" text-anchor="middle" fill="${C.axis}" font-size="9.5" font-family="sans-serif" letter-spacing="1">mmHg / bpm</text>`;
+
+  return `<svg viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">${s}</svg>`;
+}
+
+/* Tap/hover a point to see the full reading. */
+function attachChartTip(range){
+  const box=$('chartBox'), tip=$('chartTip');
+  const byId={}; records.filter(r=>inRange(r,range)).forEach(r=>byId[r.id]=r);
+  const showFor=c=>{
+    const r=byId[c.getAttribute('data-rid')]; if(!r){ return; }
+    tip.innerHTML=tipHtml(r);
+    const br=box.getBoundingClientRect(), cr=c.getBoundingClientRect();
+    const x=cr.left-br.left+cr.width/2, y=cr.top-br.top;
+    tip.style.display='block';
+    const tw=tip.offsetWidth, th=tip.offsetHeight;
+    let left=Math.max(4,Math.min(x-tw/2, br.width-tw-4));
+    let top=y-th-12; if(top<2) top=y+16;
+    tip.style.left=left+'px'; tip.style.top=top+'px';
+  };
+  box.querySelectorAll('circle.pt').forEach(c=>{
+    c.style.cursor='pointer';
+    c.addEventListener('mouseenter',()=>showFor(c));
+    c.addEventListener('mouseleave',()=>tip.style.display='none');
+    c.addEventListener('click',e=>{ e.stopPropagation(); showFor(c); });
+  });
+  box.addEventListener('click',e=>{ if(e.target.tagName!=='circle') tip.style.display='none'; });
+}
+function tipHtml(r){
+  let h=`<b>${shortDate(r.date)} · ${niceTime(r.time)}</b>`;
+  if(r.sys!=null&&r.dia!=null){ const c=classifyBP(r.sys,r.dia); h+=`<br>BP ${r.sys}/${r.dia} mmHg — ${c.label}`; }
+  if(r.bpm!=null){ const c=classify(r.bpm); h+=`<br>Pulse ${r.bpm} bpm — ${c.label}`; }
+  if(r.note) h+=`<br><span style="opacity:.8">${esc(r.note)}</span>`;
+  return h;
+}
+
+/* =====================================================================
+   ANALYSIS
+   ===================================================================== */
+function periodStats(data){
+  const p=data.pulsePts, bp=data.bpPts;
+  const out={ readings:data.readings.length, pulseCount:p.length, bpCount:bp.length, medCount:data.meds.length };
+  if(p.length){
+    const v=p.map(x=>x.bpm);
+    out.avg=Math.round(v.reduce((a,b)=>a+b,0)/v.length);
+    out.hi=p.reduce((a,b)=>b.bpm>a.bpm?b:a); out.lo=p.reduce((a,b)=>b.bpm<a.bpm?b:a);
+  }
+  if(bp.length){
+    out.bp={ avgSys:Math.round(bp.reduce((a,b)=>a+b.sys,0)/bp.length),
+             avgDia:Math.round(bp.reduce((a,b)=>a+b.dia,0)/bp.length),
+             hi:bp.reduce((a,b)=>b.sys>a.sys?b:a), count:bp.length };
+  }
+  return out;
+}
+function renderPeriodStats(target,data,range){
+  const s=periodStats(data);
+  if(!s.readings && !s.medCount){ target.innerHTML='<div class="empty">No records in this period.</div>'; return; }
+  let h=`<div class="note" style="margin-bottom:14px"><b>${esc(range.label)}</b></div>`;
+  h+=`<div class="stats" style="margin-bottom:14px">
+    <div class="stat"><div class="v num">${s.bp?s.bp.avgSys+'/'+s.bp.avgDia:'--'}</div><div class="k">Avg BP</div></div>
+    <div class="stat"><div class="v num">${s.pulseCount?s.avg:'--'}</div><div class="k">Avg pulse</div></div>
+    <div class="stat"><div class="v num">${s.medCount}</div><div class="k">Doses</div></div></div>`;
+  if(s.bp){ h+=`<div class="kv"><span class="k">Highest BP</span><span class="v">${s.bp.hi.sys}/${s.bp.hi.dia} <small>${niceTime(s.bp.hi.time)} · ${shortDate(s.bp.hi.date)}</small></span></div>`; }
+  if(s.pulseCount){
+    h+=`<div class="kv"><span class="k">Highest pulse</span><span class="v">${s.hi.bpm} bpm <small>${niceTime(s.hi.time)} · ${shortDate(s.hi.date)}</small></span></div>`;
+    h+=`<div class="kv"><span class="k">Lowest pulse</span><span class="v">${s.lo.bpm} bpm <small>${niceTime(s.lo.time)} · ${shortDate(s.lo.date)}</small></span></div>`;
+  }
+  h+=`<div class="kv"><span class="k">Readings</span><span class="v">${s.readings} (${s.bpCount} with BP)</span></div>`;
+  target.innerHTML=h;
+}
+
+/* =====================================================================
+   RECORDS
+   ===================================================================== */
+let tablePeriod='7days';
+function renderRecords(){
+  const ex=$('tableExtra'); const html=buildExtra(tablePeriod,'t','renderRecords()');
+  ex.innerHTML=html; ex.classList.toggle('hide',!html);
+  const range=getRange(tablePeriod,{ month:$('t_month')?$('t_month').value:null, start:$('t_start')?$('t_start').value:null, end:$('t_end')?$('t_end').value:null });
+  const data=prepData(range);
+  renderPeriodStats($('analysis'),data,range);
+  renderTimeline(data);
+  renderTable(data);
+}
+function renderTimeline(data){
+  const ev=data.all.slice().sort((a,b)=>a.ts-b.ts);
+  if(!ev.length){ $('timeline').innerHTML='<div class="empty">Nothing in this period.</div>'; return; }
+  $('timeline').innerHTML=ev.map(e=>{
+    if(e.type==='med') return `<div class="tl"><div class="node" style="background:var(--med)"></div>
+      <div class="tt">${niceTime(e.time)} · ${shortDate(e.date)}</div>
+      <div class="td">Medicine — ${esc(e.name||'')}${e.dose?` · ${esc(e.dose)}`:''}</div>
+      ${e.note?`<div class="nt">${esc(e.note)}</div>`:''}</div>`;
+    const bits=[]; let col='var(--faint)';
+    if(e.sys!=null){ const c=classifyBP(e.sys,e.dia); col=statusColor(c.cls); bits.push(`BP ${e.sys}/${e.dia} — ${c.label}`); }
+    if(e.bpm!=null){ const c=classify(e.bpm); if(e.sys==null)col=statusColor(c.cls); bits.push(`Pulse ${e.bpm} — ${c.label}`); }
+    return `<div class="tl"><div class="node" style="background:${col}"></div>
+      <div class="tt">${niceTime(e.time)} · ${shortDate(e.date)}</div>
+      <div class="td">${bits.join(' · ')}</div>
+      ${e.note?`<div class="nt">${esc(e.note)}</div>`:''}</div>`;
+  }).join('');
+}
+function detailCell(r){
+  const parts=[];
+  if(r.sys!=null&&r.dia!=null){ const c=classifyBP(r.sys,r.dia); parts.push(`${r.sys}/${r.dia} <span class="badge b-${c.cls}">${c.label}</span>`); }
+  if(r.bpm!=null){ const c=classify(r.bpm); parts.push(`${r.bpm} bpm <span class="badge b-${c.cls}">${c.label}</span>`); }
+  return parts.join('<br>');
+}
+function renderTable(data){
+  const rows=data.all.slice().sort((a,b)=>b.ts-a.ts);
+  if(!rows.length){ $('recBody').innerHTML='<tr><td colspan="6" style="text-align:center;color:var(--faint);padding:18px">No records.</td></tr>'; return; }
+  const editIcon='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>';
+  const delIcon='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>';
+  $('recBody').innerHTML=rows.map(r=>{
+    const type = r.type==='med' ? 'Medicine' : 'Reading';
+    const detail = r.type==='med' ? esc(r.name||'')+(r.dose?` · ${esc(r.dose)}`:'') : detailCell(r);
+    return `<tr>
+      <td style="white-space:nowrap">${shortDate(r.date)}</td>
+      <td style="white-space:nowrap">${niceTime(r.time)}</td>
+      <td style="white-space:nowrap">${type}</td>
+      <td style="line-height:1.7">${detail}</td>
+      <td>${esc(r.note||'')}</td>
+      <td><div class="acts">
+        <button class="iconbtn" title="Edit" onclick="openEdit('${r.id}')">${editIcon}</button>
+        <button class="iconbtn del" title="Delete" onclick="quickDelete('${r.id}')">${delIcon}</button>
+      </div></td></tr>`;
+  }).join('');
+}
+function quickDelete(id){ if(!confirm('Delete this record?'))return;
+  records=records.filter(r=>r.id!==id); saveRecords(); renderRecords(); toast('Deleted'); }
+
+/* =====================================================================
+   EDIT MODAL
+   ===================================================================== */
+function openEdit(id){
+  const r=records.find(x=>x.id===id); if(!r)return;
+  $('e_id').value=r.id; $('e_date').value=r.date; $('e_time').value=r.time;
+  $('editTitle').textContent = r.type==='med' ? 'Edit medicine' : 'Edit reading';
+  $('e_readingFields').style.display = r.type==='med' ? 'none' : 'block';
+  $('e_medFields').style.display = r.type==='med' ? 'block' : 'none';
+  $('e_bpm').value = r.bpm!=null?r.bpm:''; $('e_sys').value=r.sys!=null?r.sys:''; $('e_dia').value=r.dia!=null?r.dia:'';
+  $('e_name').value=r.name||''; $('e_dose').value=r.dose||''; $('e_note').value=r.note||'';
+  $('overlay').classList.add('open');
+}
+function closeModal(){ $('overlay').classList.remove('open'); }
+function saveEdit(){
+  const r=records.find(x=>x.id===$('e_id').value); if(!r)return;
+  if(!$('e_date').value||!$('e_time').value){ toast('Date and time are required'); return; }
+  r.date=$('e_date').value; r.time=$('e_time').value; r.ts=toTs(r.date,r.time); r.note=$('e_note').value.trim();
+  if(r.type==='med'){
+    if(!$('e_name').value.trim()){ toast('Medicine name is required'); return; }
+    r.name=$('e_name').value.trim(); r.dose=$('e_dose').value.trim();
+  } else {
+    const bpmRaw=$('e_bpm').value.trim(); let bpm=null;
+    if(bpmRaw!==''){ bpm=parseInt(bpmRaw,10); if(!bpm||bpm<20||bpm>300){ toast('Pulse must be 20–300'); return; } }
+    const bp=readBP($('e_sys').value.trim(),$('e_dia').value.trim());
+    if(bp.err){ toast(bp.err); return; }
+    if(bpm==null&&bp.sys==null){ toast('Enter a blood pressure or a pulse'); return; }
+    r.bpm=bpm; r.sys=bp.sys; r.dia=bp.dia;
+  }
+  saveRecords(); closeModal(); renderRecords(); renderDashboard(); toast('Saved');
+}
+function deleteFromModal(){
+  const id=$('e_id').value; if(!confirm('Delete this record?'))return;
+  records=records.filter(r=>r.id!==id); saveRecords(); closeModal(); renderRecords(); renderDashboard(); toast('Deleted');
+}
+
+/* =====================================================================
+   EXPORT / IMPORT / CLEAR
+   ===================================================================== */
+function download(filename,text,mime){
+  const blob=new Blob([text],{type:mime}); const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url; a.download=filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+function csvCell(s){ s=String(s==null?'':s); return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s; }
+function readingRow(r){
+  const bp=(r.sys!=null&&r.dia!=null); const c=bp?classifyBP(r.sys,r.dia):classify(r.bpm);
+  return [r.date,r.time,'Reading', r.sys??'', r.dia??'', r.bpm??'', '', '', c?c.label:'', r.note||''];
+}
+function exportCSV(){
+  if(!records.length){ toast('No data to export'); return; }
+  const head=['Date','Time','Type','Systolic','Diastolic','Pulse (bpm)','Medicine','Dose','Status','Notes'];
+  const rows=records.slice().sort((a,b)=>a.ts-b.ts).map(r=> r.type==='med'
+    ? [r.date,r.time,'Medicine','','','', r.name||'', r.dose||'','', r.note||'']
+    : readingRow(r));
+  download('heart-care-'+todayStr()+'.csv', [head,...rows].map(row=>row.map(csvCell).join(',')).join('\n'), 'text/csv');
+  toast('Exported for Excel');
+}
+function exportChartExcel(){
+  const range=getRange(chartPeriod, chartExtraValues());
+  const data=prepData(range);
+  if(!data.all.length){ toast('No data in this view'); return; }
+  const rows=[];
+  rows.push(['Patient', settings.patientName||'Heart Care']);
+  rows.push(['Period', range.label]);
+  rows.push(['Exported', new Date().toLocaleString()]);
+  rows.push(['Normal pulse', settings.lowerLimit+'-'+settings.upperLimit+' bpm']);
+  rows.push(['Normal BP', settings.bpSysLow+'/'+settings.bpDiaLow+' to '+settings.bpSysHigh+'/'+settings.bpDiaHigh+' mmHg']);
+  rows.push([]);
+  rows.push(['Date','Time','Type','Systolic','Diastolic','Pulse (bpm)','Medicine','Dose','Status','Notes']);
+  data.all.slice().sort((a,b)=>a.ts-b.ts).forEach(r=>{
+    rows.push(r.type==='med'
+      ? [r.date,r.time,'Medicine','','','', r.name||'', r.dose||'','', r.note||'']
+      : readingRow(r));
+  });
+  download('heart-care-'+range.label.replace(/[^a-z0-9]/gi,'_').slice(0,28)+'.csv', rows.map(row=>row.map(csvCell).join(',')).join('\n'),'text/csv');
+  toast('Chart data exported to Excel');
+}
+function exportJSON(){
+  download('heart-care-backup-'+todayStr()+'.json', JSON.stringify({app:'HeartCare',version:2,exportedAt:new Date().toISOString(),settings,records},null,2),'application/json');
+  toast('Backup saved');
+}
+function importJSON(ev){
+  const f=ev.target.files[0]; if(!f)return; const reader=new FileReader();
+  reader.onload=()=>{ try{
+      const d=JSON.parse(reader.result); const recs=d.records||d;
+      if(!Array.isArray(recs)) throw 0;
+      if(!confirm('Restore this backup? It replaces all current records on every synced phone.')){ ev.target.value=''; return; }
+      records=recs.map(r=>({...r, id:r.id||uid(), ts:r.ts||toTs(r.date,r.time)}));
+      if(d.settings) settings=Object.assign({},DEFAULT_SETTINGS,d.settings);
+      saveRecords(); saveSettingsStore(); refreshMedDatalist(); renderDashboard(); renderRecords();
+      toast('Backup restored');
+    }catch(e){ toast('Could not read that file'); }
+    ev.target.value=''; };
+  reader.readAsText(f);
+}
+function clearAll(){
+  if(!records.length){ toast('No records to clear'); return; }
+  if(!confirm('Delete ALL records? Settings are kept. This cannot be undone.'))return;
+  if(!confirm('Are you sure? This removes every record on all synced phones.'))return;
+  records=[]; saveRecords(); renderDashboard(); renderRecords(); toast('All records cleared');
+}
+
+/* =====================================================================
+   PRINT — clean report (SVG chart prints sharply) for the doctor
+   ===================================================================== */
+function printChartView(){
+  const range=getRange(chartPeriod, chartExtraValues());
+  const data=prepData(range);
+  const svg=buildChartSVG(760,360,data,range,{showLabels:data.readings.length<=30});
+
+  const tr=data.all.slice().sort((a,b)=>a.ts-b.ts).map(r=>{
+    if(r.type==='med') return `<tr><td>${shortDate(r.date)}</td><td>${niceTime(r.time)}</td><td>Medicine</td><td colspan="2"><b>${esc(r.name||'')}</b>${r.dose?' · '+esc(r.dose):''}</td><td></td><td>${esc(r.note||'')}</td></tr>`;
+    const bp=(r.sys!=null)?r.sys+'/'+r.dia:'—'; const pu=(r.bpm!=null)?r.bpm+' bpm':'—';
+    const c=(r.sys!=null)?classifyBP(r.sys,r.dia):classify(r.bpm);
+    return `<tr><td>${shortDate(r.date)}</td><td>${niceTime(r.time)}</td><td>Reading</td><td>${bp}</td><td>${pu}</td><td>${c?c.label:''}</td><td>${esc(r.note||'')}</td></tr>`;
+  }).join('');
+
+  const html='<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Report — '+(settings.patientName||'Heart Care')+'</title><style>'
+    +'*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,Helvetica,sans-serif;font-size:12.5px;color:#1f2733;padding:26px}'
+    +'h1{font-size:18px;margin-bottom:4px}.meta{font-size:12px;color:#555;margin-bottom:16px}'
+    +'.chart{border:1px solid #ccc;border-radius:8px;padding:8px;margin-bottom:18px}'
+    +'svg{width:100%;height:auto;display:block}'
+    +'table{border-collapse:collapse;width:100%;font-size:11.5px}'
+    +'th{background:#f1f3f4;border:1px solid #d8dde0;padding:6px 8px;text-align:left;font-size:10.5px;text-transform:uppercase}'
+    +'td{border:1px solid #e4e7e9;padding:6px 8px}tr:nth-child(even) td{background:#fafbfb}'
+    +'.sec{font-size:12.5px;font-weight:bold;margin:0 0 6px}@media print{body{padding:10px}}'
+    +'</style></head><body>'
+    +'<h1>Blood Pressure &amp; Pulse Report — '+esc(settings.patientName||'Heart Care')+'</h1>'
+    +'<div class="meta">Period: <b>'+esc(range.label)+'</b> &nbsp;|&nbsp; Normal pulse: <b>'+settings.lowerLimit+'-'+settings.upperLimit+' bpm</b>'
+      +' &nbsp;|&nbsp; Normal BP: <b>up to '+settings.bpSysHigh+'/'+settings.bpDiaHigh+' mmHg</b> &nbsp;|&nbsp; Printed: '
+      +new Date().toLocaleDateString(undefined,{day:'numeric',month:'long',year:'numeric'})+'</div>'
+    +'<div class="chart">'+svg+'</div>'
+    +'<div class="sec">All records ('+data.all.length+')</div>'
+    +'<table><thead><tr><th>Date</th><th>Time</th><th>Type</th><th>Blood pressure</th><th>Pulse</th><th>Status</th><th>Notes</th></tr></thead><tbody>'
+    +(tr||'<tr><td colspan="7">No records in this period.</td></tr>')+'</tbody></table>'
+    +'</body></html>';
+
+  const w=window.open('','_blank','width=900,height=720');
+  if(!w){ toast('Allow pop-ups to print'); return; }
+  w.document.write(html); w.document.close();
+  setTimeout(()=>{ w.focus(); w.print(); }, 500);
+}
+
+/* =====================================================================
+   SETTINGS
+   ===================================================================== */
+function renderSettings(){
+  $('set_name').value=settings.patientName||'';
+  $('set_low').value=settings.lowerLimit; $('set_high').value=settings.upperLimit;
+  $('set_sys_low').value=settings.bpSysLow; $('set_sys_high').value=settings.bpSysHigh;
+  $('set_dia_low').value=settings.bpDiaLow; $('set_dia_high').value=settings.bpDiaHigh;
+  $('set_reminder').value=settings.reminderText||'';
+  renderMedChips();
+  $('notifBtn').style.display = ('Notification' in window && Notification.permission!=='granted') ? 'inline-flex':'none';
+}
+function renderMedChips(){
+  $('medChips').innerHTML = settings.medList.map((m,i)=>`<span class="chip">${esc(m)}<button title="Remove" onclick="removeMedName(${i})">×</button></span>`).join('')
+    || '<span class="note">No medicines added yet.</span>';
+}
+function addMedName(){ const v=$('newMed').value.trim(); if(!v)return;
+  if(!settings.medList.some(x=>x.toLowerCase()===v.toLowerCase())) settings.medList.push(v);
+  $('newMed').value=''; saveSettingsStore(); renderMedChips(); refreshMedDatalist(); }
+function removeMedName(i){ settings.medList.splice(i,1); saveSettingsStore(); renderMedChips(); refreshMedDatalist(); }
+function refreshMedDatalist(){ $('medList').innerHTML = settings.medList.map(m=>`<option value="${esc(m)}">`).join(''); }
+function saveSettings(){
+  const lo=parseInt($('set_low').value,10), hi=parseInt($('set_high').value,10);
+  if(!lo||!hi||lo<20||hi>300||lo>=hi){ toast('Check the pulse limits'); return; }
+  const sLo=parseInt($('set_sys_low').value,10), sHi=parseInt($('set_sys_high').value,10);
+  const dLo=parseInt($('set_dia_low').value,10), dHi=parseInt($('set_dia_high').value,10);
+  if(!sLo||!sHi||sLo>=sHi||!dLo||!dHi||dLo>=dHi){ toast('Check the BP limits'); return; }
+  settings.patientName=$('set_name').value.trim();
+  settings.lowerLimit=lo; settings.upperLimit=hi;
+  settings.bpSysLow=sLo; settings.bpSysHigh=sHi; settings.bpDiaLow=dLo; settings.bpDiaHigh=dHi;
+  settings.reminderText=$('set_reminder').value.trim();
+  saveSettingsStore(); renderDashboard(); toast('Settings saved');
+}
+function enableNotif(){
+  if(!('Notification' in window))return;
+  Notification.requestPermission().then(p=>{ if(p==='granted'){
+    new Notification('Heart Care',{body:settings.reminderText||'Reminder set. Please also set a phone alarm.'});
+    $('notifBtn').style.display='none';
+  } else toast('Notifications not allowed'); });
+}
+
+/* =====================================================================
+   TOAST / INSTALL / INIT
+   ===================================================================== */
+let toastTimer;
+function toast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('show');
+  clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove('show'),2000); }
+
+let deferredPrompt=null;
+window.addEventListener('beforeinstallprompt', e=>{ e.preventDefault(); deferredPrompt=e;
+  const b=$('installBtn'); b.classList.remove('hide');
+  b.onclick=async()=>{ b.classList.add('hide'); deferredPrompt.prompt(); await deferredPrompt.userChoice; deferredPrompt=null; }; });
+
+$('overlay').addEventListener('click', e=>{ if(e.target.id==='overlay') closeModal(); });
+let rT; window.addEventListener('resize', ()=>{ clearTimeout(rT); rT=setTimeout(()=>{ if($('view-trends').classList.contains('active')) renderTrends(); }, 200); });
 
 function init(){
   load();
+  refreshMedDatalist();
+  $('p_date').value=$('m_date').value=todayStr();
+  $('p_time').value=$('m_time').value=nowTime();
+  bindSeg('chartSeg', p=>chartPeriod=p, renderTrends);
+  bindSeg('tableSeg', p=>tablePeriod=p, renderRecords);
   renderDashboard();
-  initFirebaseSync();
+  initSync();
 }
 init();
 </script>
